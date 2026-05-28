@@ -10,7 +10,7 @@ export async function generateBlueprint(prompt) {
       body: JSON.stringify({ prompt }),
     });
   } catch {
-    throw new Error("Cannot reach the server. Make sure the backend is running on port 3001.");
+    throw new Error("Failed to connect to backend server.");
   }
 
   const json = await response.json();
