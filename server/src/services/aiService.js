@@ -70,7 +70,6 @@ function parseAndValidate(rawContent) {
   if (first === -1 || last === -1) throw new Error("No JSON object in response");
   jsonString = jsonString.slice(first, last + 1);
 
-  console.log(rawContent);
   let parsed;
 
   try {
@@ -125,6 +124,7 @@ async function generateProjectBlueprint(userPrompt) {
     }
   );
 
+  const rawContent = response.data?.choices?.[0]?.message?.content;
   const data = parseAndValidate(rawContent);
   console.log(`✅ Done in ${Date.now() - startTime}ms — "${data.title}"`);
   return data;
