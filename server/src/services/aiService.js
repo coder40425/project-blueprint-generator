@@ -5,33 +5,44 @@ const axios = require("axios");
 // that can be downloaded as a professional Word document.
 
 const SYSTEM_PROMPT = `
-You are a fast and professional software architect and academic project advisor.
+You are a fast professional software architect and academic project advisor.
 
-Generate a professional software project blueprint suitable for university mini-project reports.
+Generate a professional software project blueprint for university mini-project reports.
 
-Respond with ONLY one valid JSON object.
+Return ONLY ONE valid JSON object.
 No markdown.
 No explanations.
 No code fences.
 
+IMPORTANT:
+- Keep text professional but compact.
+- Keep every description under 35 words.
+- Keep JSON syntactically perfect.
+- Never leave trailing commas.
+- Never omit closing brackets.
+- Do not generate unnecessary text.
+
+JSON FORMAT:
+
 {
   "title": "Formal project title",
-  "tagline": "Professional one-line subtitle",
-  "description": "2-3 paragraph-style concise academic abstract explaining project purpose, workflow, and significance",
+  "tagline": "One-line subtitle",
+
+  "description": "Professional academic abstract in 3-5 concise sentences.",
 
   "category": "Project category",
 
   "techStack": {
-    "frontend": ["3-5 technologies"],
-    "backend": ["3-5 technologies"],
-    "database": ["2-3 technologies"],
-    "devops": ["2-4 technologies"]
+    "frontend": ["technology"],
+    "backend": ["technology"],
+    "database": ["technology"],
+    "devops": ["technology"]
   },
 
   "features": [
     {
       "name": "Feature name",
-      "description": "Clear implementation-focused explanation",
+      "description": "Implementation-focused feature explanation",
       "priority": "high"
     }
   ],
@@ -43,7 +54,7 @@ No code fences.
         {
           "name": "column_name",
           "type": "SQL_TYPE",
-          "note": "PK or FK or UNIQUE"
+          "note": "PK/FK/UNIQUE"
         }
       ]
     }
@@ -53,7 +64,7 @@ No code fences.
     {
       "method": "GET",
       "path": "/api/example",
-      "description": "Purpose of endpoint",
+      "description": "Endpoint purpose",
       "auth": true
     }
   ],
@@ -62,37 +73,32 @@ No code fences.
     {
       "step": 1,
       "title": "Development phase",
-      "description": "Short implementation explanation with deliverables"
+      "description": "Implementation summary"
     }
   ],
 
   "timeline": [
     {
-      "phase": "Phase Name",
+      "phase": "Phase name",
       "duration": "Week range",
       "tasks": ["task1", "task2", "task3"]
     }
   ],
 
-  "folderStructure": "Detailed realistic production-grade folder structure with meaningful directories and important files"
+  "folderStructure": "Detailed realistic folder structure"
 }
 
 RULES:
-- features: 6-7 items
-- apis: 6-8 endpoints
-- devSteps: 5-6 steps
+- features: 6 items
+- apis: 6 endpoints
+- devSteps: 5 steps
 - timeline: 4 phases
-- database: 3-4 tables
-- each table: 4-6 columns
-- Keep descriptions informative but concise
-- Keep response optimized for fast generation
-- Generate realistic project-specific folder structures
-- Include useful folders, config files, and architecture directories
-- Use professional academic language
-- priority values ONLY: "high", "medium", "low"
-- method values ONLY: "GET", "POST", "PUT", "DELETE", "PATCH"
-- auth values ONLY: true or false
-- Output ONLY valid JSON
+- database: 3 tables
+- each table: 5 columns
+- Generate realistic folder structures
+- Keep folder structure detailed but compact
+- Use ONLY valid JSON
+- Output ONLY the JSON object
 `;
 
 // ─── Parse & Validate ─────────────────────────────────────────
@@ -103,8 +109,7 @@ function parseAndValidate(rawContent) {
   if (jsonString.startsWith("```")) {
     jsonString = jsonString.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
   }
-  const first = jsonString.indexOf("{");
-  const last = jsonString.lastIndexOf("}");
+  jsonString = jsonString.trim();
   if (first === -1 || last === -1) throw new Error("No JSON object in response");
   jsonString = jsonString.slice(first, last + 1);
 
@@ -145,8 +150,8 @@ async function generateProjectBlueprint(userPrompt) {
     "https://api.openai.com/v1/chat/completions",
     {
       model: "gpt-4o-mini",
-      max_tokens: 1700,
-      temperature: 0.3,
+      max_tokens: 1600,
+      temperature: 0.2,
       response_format: { type: "json_object" }, // Native JSON mode — always valid JSON, no fences
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
