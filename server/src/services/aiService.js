@@ -106,12 +106,13 @@ function parseAndValidate(rawContent) {
   if (!rawContent || !rawContent.trim()) throw new Error("Empty response from model");
 
   let jsonString = rawContent.trim();
+
   if (jsonString.startsWith("```")) {
-    jsonString = jsonString.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
+    jsonString = jsonString
+      .replace(/^```(?:json)?\s*/i, "")
+      .replace(/\s*```\s*$/, "")
+      .trim();
   }
-  jsonString = jsonString.trim();
-  if (first === -1 || last === -1) throw new Error("No JSON object in response");
-  jsonString = jsonString.slice(first, last + 1);
 
   let parsed;
 
