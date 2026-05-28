@@ -63,12 +63,11 @@ const EXAMPLE_PROMPTS = [
 ];
 
 const STATS = [
-  { value: "50K+", label: "Blueprints Generated", icon: Zap },
-  { value: "200+", label: "Tech Stacks Supported", icon: Code2 },
-  { value: "4.9★", label: "Average Rating", icon: Star },
-  { value: "15K+", label: "Developers Served", icon: Users },
+  { value: "100+", label: "Blueprints Generated", icon: Zap },
+  { value: "25+", label: "Tech Stacks Supported", icon: Code2 },
+  { value: "4.8★", label: "User Experience", icon: Star },
+  { value: "50+", label: "Students Helped", icon: Users },
 ];
-
 // ─── Utilities ────────────────────────────────────────────────
 function methodColor(m: HTTPMethod) {
   const map: Record<HTTPMethod, string> = {
@@ -465,8 +464,8 @@ function Footer() {
           ))}
         </div>
         <div className="border-t border-gray-100 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
-          <p className="text-gray-400 text-xs">© 2025 SkillDzire. All rights reserved.</p>
-          <p className="text-gray-400 text-xs">Built with <span className="text-[#E8320A]">♥</span> by SkillDzire</p>
+          <p className="text-gray-400 text-xs">© 2026 SkillDzire. All rights reserved.</p>
+          <p className="text-gray-400 text-xs">Built by SkillDzire</p>
         </div>
       </div>
     </footer>
