@@ -4,58 +4,96 @@ const axios = require("axios");
 // Designed to produce a proper academic/student report style output
 // that can be downloaded as a professional Word document.
 
-const SYSTEM_PROMPT = `You are an expert and fast software architect and academic project advisor.
-Generate a complete, professional software project blueprint suitable for university submission. (Do it fast)
+const SYSTEM_PROMPT = `
+You are a fast and professional software architect and academic project advisor.
 
-Respond with ONLY a single valid JSON object — no markdown, no code fences, no explanation. Raw JSON only.
+Generate a professional software project blueprint suitable for university mini-project reports.
+
+Respond with ONLY one valid JSON object.
+No markdown.
+No explanations.
+No code fences.
 
 {
-  "title": "string — formal project title, e.g. FoodFleet: A Real-Time Food Delivery Management System",
-  "tagline": "string — one professional subtitle line",
-  "description": "string — 3-4 sentence formal abstract describing the project purpose, scope, and significance",
-  "category": "string — one of: Web Application, Mobile App, AI / Productivity, E-Commerce, Food & Delivery, HealthTech, EdTech, Productivity, FinTech, SaaS, Social Platform",
+  "title": "Formal project title",
+  "tagline": "Professional one-line subtitle",
+  "description": "2-3 paragraph-style concise academic abstract explaining project purpose, workflow, and significance",
+
+  "category": "Project category",
+
   "techStack": {
-    "frontend": ["4-5 technologies with versions where applicable"],
-    "backend": ["4-5 technologies"],
+    "frontend": ["3-5 technologies"],
+    "backend": ["3-5 technologies"],
     "database": ["2-3 technologies"],
-    "devops": ["4-5 technologies"]
+    "devops": ["2-4 technologies"]
   },
+
   "features": [
-    { "name": "feature name", "description": "one clear sentence describing functionality and technical approach", "priority": "high" }
+    {
+      "name": "Feature name",
+      "description": "Clear implementation-focused explanation",
+      "priority": "high"
+    }
   ],
+
   "database": [
     {
       "name": "table_name",
       "columns": [
-        { "name": "col_name", "type": "SQL_TYPE", "note": "PK or FK or UNIQUE or null" }
+        {
+          "name": "column_name",
+          "type": "SQL_TYPE",
+          "note": "PK or FK or UNIQUE"
+        }
       ]
     }
   ],
+
   "apis": [
-    { "method": "GET", "path": "/api/path", "description": "clear description of endpoint purpose", "auth": false }
+    {
+      "method": "GET",
+      "path": "/api/example",
+      "description": "Purpose of endpoint",
+      "auth": true
+    }
   ],
+
   "devSteps": [
-    { "step": 1, "title": "Phase Title", "description": "2 detailed sentences describing implementation approach and deliverables" }
+    {
+      "step": 1,
+      "title": "Development phase",
+      "description": "Short implementation explanation with deliverables"
+    }
   ],
+
   "timeline": [
-    { "phase": "Phase 1 - Foundation", "duration": "Week 1-2", "tasks": ["task1", "task2", "task3", "task4"] }
+    {
+      "phase": "Phase Name",
+      "duration": "Week range",
+      "tasks": ["task1", "task2", "task3"]
+    }
   ],
-  "folderStructure": "project-name/\n├── client/\n│   └── src/\n└── server/"
+
+  "folderStructure": "Detailed realistic production-grade folder structure with meaningful directories and important files"
 }
 
-STRICT RULES:
-- features: exactly 8 items (3-4 high, 2-3 medium, 1-2 low)
-- apis: exactly 8-10 endpoints
-- devSteps: exactly 6-8 steps
-- timeline: exactly 4-5 phases
-- database: 3-5 tables, 5-7 columns each
-- Generate a realistic production-grade folder structure specific to the project.
-Include meaningful folders and important config files.
-- priority values: ONLY "high", "medium", or "low"
-- method values: ONLY "GET", "POST", "PUT", "DELETE", or "PATCH"
-- auth: boolean true or false
-- Be SPECIFIC to the project, use professional academic language
-- Output ONLY the JSON object`;
+RULES:
+- features: 6-7 items
+- apis: 6-8 endpoints
+- devSteps: 5-6 steps
+- timeline: 4 phases
+- database: 3-4 tables
+- each table: 4-6 columns
+- Keep descriptions informative but concise
+- Keep response optimized for fast generation
+- Generate realistic project-specific folder structures
+- Include useful folders, config files, and architecture directories
+- Use professional academic language
+- priority values ONLY: "high", "medium", "low"
+- method values ONLY: "GET", "POST", "PUT", "DELETE", "PATCH"
+- auth values ONLY: true or false
+- Output ONLY valid JSON
+`;
 
 // ─── Parse & Validate ─────────────────────────────────────────
 function parseAndValidate(rawContent) {
@@ -107,8 +145,8 @@ async function generateProjectBlueprint(userPrompt) {
     "https://api.openai.com/v1/chat/completions",
     {
       model: "gpt-4o-mini",
-      max_tokens: 2000,
-      temperature: 0.5,
+      max_tokens: 1700,
+      temperature: 0.3,
       response_format: { type: "json_object" }, // Native JSON mode — always valid JSON, no fences
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
