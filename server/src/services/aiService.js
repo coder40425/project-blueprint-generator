@@ -108,7 +108,7 @@ async function generateProjectBlueprint(userPrompt) {
     "https://api.openai.com/v1/chat/completions",
     {
       model: "gpt-4o-mini",
-      max_tokens: 3500,
+      max_tokens: 2000,
       temperature: 0.5,
       response_format: { type: "json_object" }, // Native JSON mode — always valid JSON, no fences
       messages: [
@@ -125,7 +125,6 @@ async function generateProjectBlueprint(userPrompt) {
     }
   );
 
-  const rawContent = response.data?.choices?.[0]?.message?.content;
   const data = parseAndValidate(rawContent);
   console.log(`✅ Done in ${Date.now() - startTime}ms — "${data.title}"`);
   return data;
