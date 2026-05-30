@@ -64,10 +64,11 @@ const EXAMPLE_PROMPTS = [
 
 const STATS = [
   { value: "100+", label: "Blueprints Generated", icon: Zap },
-  { value: "25+", label: "Tech Stacks Supported", icon: Code2 },
-  { value: "4.8★", label: "User Experience", icon: Star },
-  { value: "50+", label: "Students Helped", icon: Users },
+  { value: "20+", label: "Tech Stacks Supported", icon: Code2 },
+  { value: "4.9★", label: "Average Rating", icon: Star },
+  { value: "100+", label: "Developers Served", icon: Users },
 ];
+
 // ─── Utilities ────────────────────────────────────────────────
 function methodColor(m: HTTPMethod) {
   const map: Record<HTTPMethod, string> = {
@@ -451,9 +452,8 @@ function Footer() {
             </div>
           </div>
           {[
-            { heading: "Product", links: ["Features", "How It Works", "Documentation"] },
+            { heading: "Product", links: ["Features", "How It Works"] },
             { heading: "Company", links: ["About SkillDzire", "Contact"] },
-            { heading: "Resources", links: ["Get Started", "Support Center", "Privacy Policy"] },
           ].map(col => (
             <div key={col.heading}>
               <h4 className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-4">{col.heading}</h4>
@@ -490,21 +490,29 @@ function LandingPage({ onGenerate }: { onGenerate: (p: string) => void }) {
 function GeneratingView({ prompt, onComplete }: { prompt: string; onComplete: () => void }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [completed, setCompleted] = useState<number[]>([]);
+  const [waiting, setWaiting] = useState(false);
 
+  // Animate steps at 1.1s each, stop at last step — hold it spinning until API resolves
   useEffect(() => {
-    if (currentStep >= LOADING_STEPS.length) return;
+    if (currentStep >= LOADING_STEPS.length - 1) return;
     const t = setTimeout(() => {
       setCompleted(prev => [...prev, currentStep]);
       setCurrentStep(prev => prev + 1);
-    }, 1200);
+    }, 1100);
     return () => clearTimeout(t);
   }, [currentStep]);
 
+  // On last step: wait briefly then await the already-running API promise
   useEffect(() => {
-    if (currentStep >= LOADING_STEPS.length) onComplete();
-  }, [currentStep, onComplete]);
+    if (currentStep === LOADING_STEPS.length - 1 && !waiting) {
+      setWaiting(true);
+      setTimeout(() => { onComplete(); }, 400);
+    }
+  }, [currentStep, waiting, onComplete]);
 
-  const progress = Math.round((completed.length / LOADING_STEPS.length) * 100);
+  const progress = waiting
+    ? Math.min(Math.round((completed.length / LOADING_STEPS.length) * 100), 90)
+    : Math.round((completed.length / LOADING_STEPS.length) * 100);
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-white">
@@ -898,18 +906,28 @@ export default function App() {
   const [prompt, setPrompt] = useState("");
   const [projectData, setProjectData] = useState<ProjectData | null>(null);
 
+  // Holds the in-flight API promise so animation and API run in parallel
+  const apiPromiseRef = useRef<Promise<ProjectData> | null>(null);
+
   const handleGenerate = (p: string) => {
     if (!p.trim()) { toast.error("Please enter a project idea"); return; }
     setPrompt(p);
+    // ── Fire API call IMMEDIATELY — don't wait for animation ──
+    apiPromiseRef.current = generateBlueprint(p.trim());
     setView("generating");
   };
 
+  // Called by GeneratingView once its animation finishes (~7s).
+  // By then the API call is usually done — we just await the
+  // already-running promise instead of starting a new one.
   const handleComplete = useCallback(async () => {
     try {
-      const data = await generateBlueprint(prompt);
+      const data = await (apiPromiseRef.current ?? generateBlueprint(prompt));
+      apiPromiseRef.current = null;
       setProjectData(data);
       setView("results");
     } catch (err: any) {
+      apiPromiseRef.current = null;
       toast.error(err.message || "Failed to generate blueprint. Please try again.");
       setView("landing");
     }
