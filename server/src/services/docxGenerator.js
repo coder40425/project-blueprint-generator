@@ -6,15 +6,15 @@ const {
 } = require("docx");
 
 // ─── Color Palette ────────────────────────────────────────────
-const BRAND_RED  = "C0300A";
+const BRAND_RED = "C0300A";
 const BRAND_DARK = "1E1E2E";
-const DARK       = "1A1A1A";
-const GRAY       = "5A6478";
-const MID_GRAY   = "9CA3AF";
+const DARK = "1A1A1A";
+const GRAY = "5A6478";
+const MID_GRAY = "9CA3AF";
 const LIGHT_GRAY = "F3F4F6";
-const ALT_ROW    = "FEF3F0";
-const WHITE      = "FFFFFF";
-const BORDER     = "D1D5DB";
+const ALT_ROW = "FEF3F0";
+const WHITE = "FFFFFF";
+const BORDER = "D1D5DB";
 
 // Content width in DXA (US Letter 8.5" minus 1" left + 0.875" right margins)
 const CONTENT_W = 9360;
@@ -102,12 +102,12 @@ function makeTable(headers, rows, colPercents) {
     width: { size: CONTENT_W, type: WidthType.DXA },
     columnWidths: colWidths,
     borders: {
-      top:     { style: BorderStyle.SINGLE, size: 6,  color: BORDER },
-      bottom:  { style: BorderStyle.SINGLE, size: 6,  color: BORDER },
-      left:    { style: BorderStyle.SINGLE, size: 6,  color: BORDER },
-      right:   { style: BorderStyle.SINGLE, size: 6,  color: BORDER },
-      insideH: { style: BorderStyle.SINGLE, size: 3,  color: BORDER },
-      insideV: { style: BorderStyle.SINGLE, size: 3,  color: BORDER },
+      top: { style: BorderStyle.SINGLE, size: 6, color: BORDER },
+      bottom: { style: BorderStyle.SINGLE, size: 6, color: BORDER },
+      left: { style: BorderStyle.SINGLE, size: 6, color: BORDER },
+      right: { style: BorderStyle.SINGLE, size: 6, color: BORDER },
+      insideH: { style: BorderStyle.SINGLE, size: 3, color: BORDER },
+      insideV: { style: BorderStyle.SINGLE, size: 3, color: BORDER },
     },
     rows: [
       new TableRow({
@@ -152,10 +152,10 @@ function diagramBox(lines, caption) {
       spacing: { before: 80, after: 80 },
       shading: { type: ShadingType.CLEAR, fill: "0F172A" },
       border: {
-        top:    { style: BorderStyle.SINGLE, size: 4, color: BRAND_RED },
-        left:   { style: BorderStyle.SINGLE, size: 4, color: BRAND_RED },
+        top: { style: BorderStyle.SINGLE, size: 4, color: BRAND_RED },
+        left: { style: BorderStyle.SINGLE, size: 4, color: BRAND_RED },
         bottom: { style: BorderStyle.SINGLE, size: 4, color: BRAND_RED },
-        right:  { style: BorderStyle.SINGLE, size: 4, color: BRAND_RED },
+        right: { style: BorderStyle.SINGLE, size: 4, color: BRAND_RED },
       },
       children: lines.flatMap((line, i) => [
         ...(i > 0 ? [new TextRun({ break: 1 })] : []),
@@ -186,31 +186,31 @@ function buildReferences(data) {
   ];
 
   const knownRefs = {
-    "React":        `[${idx++}] Meta Platforms. (2023). React – A JavaScript library for building user interfaces. https://react.dev`,
-    "React.js":     `[${idx++}] Meta Platforms. (2023). React – A JavaScript library for building user interfaces. https://react.dev`,
-    "Vue":          `[${idx++}] You, E. (2023). Vue.js – The Progressive JavaScript Framework. https://vuejs.org`,
-    "Angular":      `[${idx++}] Google LLC. (2023). Angular – Platform for building mobile and desktop web applications. https://angular.io`,
-    "Node.js":      `[${idx++}] OpenJS Foundation. (2023). Node.js – JavaScript runtime built on Chrome's V8 engine. https://nodejs.org`,
-    "Express":      `[${idx++}] OpenJS Foundation. (2023). Express – Fast, unopinionated, minimalist web framework for Node.js. https://expressjs.com`,
-    "Express.js":   `[${idx++}] OpenJS Foundation. (2023). Express – Fast, unopinionated, minimalist web framework for Node.js. https://expressjs.com`,
-    "MongoDB":      `[${idx++}] MongoDB, Inc. (2023). MongoDB – The developer data platform. https://mongodb.com`,
-    "PostgreSQL":   `[${idx++}] The PostgreSQL Global Development Group. (2023). PostgreSQL: The World's Most Advanced Open Source Relational Database. https://postgresql.org`,
-    "MySQL":        `[${idx++}] Oracle Corporation. (2023). MySQL – The world's most popular open source database. https://mysql.com`,
-    "Redis":        `[${idx++}] Redis Ltd. (2023). Redis – The open source, in-memory data store. https://redis.io`,
-    "Docker":       `[${idx++}] Docker, Inc. (2023). Docker – Accelerated container application development. https://docker.com`,
-    "TypeScript":   `[${idx++}] Microsoft Corporation. (2023). TypeScript – JavaScript with syntax for types. https://typescriptlang.org`,
-    "Python":       `[${idx++}] Python Software Foundation. (2023). Python – Programming Language. https://python.org`,
-    "FastAPI":      `[${idx++}] Ramírez, S. (2023). FastAPI – Modern, fast web framework for building APIs with Python. https://fastapi.tiangolo.com`,
-    "Tailwind":     `[${idx++}] Tailwind Labs. (2023). Tailwind CSS – A utility-first CSS framework. https://tailwindcss.com`,
+    "React": `[${idx++}] Meta Platforms. (2023). React – A JavaScript library for building user interfaces. https://react.dev`,
+    "React.js": `[${idx++}] Meta Platforms. (2023). React – A JavaScript library for building user interfaces. https://react.dev`,
+    "Vue": `[${idx++}] You, E. (2023). Vue.js – The Progressive JavaScript Framework. https://vuejs.org`,
+    "Angular": `[${idx++}] Google LLC. (2023). Angular – Platform for building mobile and desktop web applications. https://angular.io`,
+    "Node.js": `[${idx++}] OpenJS Foundation. (2023). Node.js – JavaScript runtime built on Chrome's V8 engine. https://nodejs.org`,
+    "Express": `[${idx++}] OpenJS Foundation. (2023). Express – Fast, unopinionated, minimalist web framework for Node.js. https://expressjs.com`,
+    "Express.js": `[${idx++}] OpenJS Foundation. (2023). Express – Fast, unopinionated, minimalist web framework for Node.js. https://expressjs.com`,
+    "MongoDB": `[${idx++}] MongoDB, Inc. (2023). MongoDB – The developer data platform. https://mongodb.com`,
+    "PostgreSQL": `[${idx++}] The PostgreSQL Global Development Group. (2023). PostgreSQL: The World's Most Advanced Open Source Relational Database. https://postgresql.org`,
+    "MySQL": `[${idx++}] Oracle Corporation. (2023). MySQL – The world's most popular open source database. https://mysql.com`,
+    "Redis": `[${idx++}] Redis Ltd. (2023). Redis – The open source, in-memory data store. https://redis.io`,
+    "Docker": `[${idx++}] Docker, Inc. (2023). Docker – Accelerated container application development. https://docker.com`,
+    "TypeScript": `[${idx++}] Microsoft Corporation. (2023). TypeScript – JavaScript with syntax for types. https://typescriptlang.org`,
+    "Python": `[${idx++}] Python Software Foundation. (2023). Python – Programming Language. https://python.org`,
+    "FastAPI": `[${idx++}] Ramírez, S. (2023). FastAPI – Modern, fast web framework for building APIs with Python. https://fastapi.tiangolo.com`,
+    "Tailwind": `[${idx++}] Tailwind Labs. (2023). Tailwind CSS – A utility-first CSS framework. https://tailwindcss.com`,
     "Tailwind CSS": `[${idx++}] Tailwind Labs. (2023). Tailwind CSS – A utility-first CSS framework. https://tailwindcss.com`,
-    "AWS":          `[${idx++}] Amazon Web Services. (2023). AWS Cloud Computing Services. https://aws.amazon.com`,
-    "Vercel":       `[${idx++}] Vercel Inc. (2023). Vercel – Develop. Preview. Ship. https://vercel.com`,
-    "GitHub":       `[${idx++}] GitHub, Inc. (2023). GitHub – Where the world builds software. https://github.com`,
-    "Stripe":       `[${idx++}] Stripe, Inc. (2023). Stripe – Financial infrastructure for the internet. https://stripe.com`,
-    "JWT":          `[${idx++}] IETF. (2015). JSON Web Token (JWT) – RFC 7519. https://tools.ietf.org/html/rfc7519`,
-    "Nginx":        `[${idx++}] F5, Inc. (2023). NGINX – High Performance Load Balancer, Web Server, & Reverse Proxy. https://nginx.org`,
-    "Next.js":      `[${idx++}] Vercel Inc. (2023). Next.js – The React Framework for the Web. https://nextjs.org`,
-    "Prisma":       `[${idx++}] Prisma Data, Inc. (2023). Prisma – Next-generation Node.js and TypeScript ORM. https://prisma.io`,
+    "AWS": `[${idx++}] Amazon Web Services. (2023). AWS Cloud Computing Services. https://aws.amazon.com`,
+    "Vercel": `[${idx++}] Vercel Inc. (2023). Vercel – Develop. Preview. Ship. https://vercel.com`,
+    "GitHub": `[${idx++}] GitHub, Inc. (2023). GitHub – Where the world builds software. https://github.com`,
+    "Stripe": `[${idx++}] Stripe, Inc. (2023). Stripe – Financial infrastructure for the internet. https://stripe.com`,
+    "JWT": `[${idx++}] IETF. (2015). JSON Web Token (JWT) – RFC 7519. https://tools.ietf.org/html/rfc7519`,
+    "Nginx": `[${idx++}] F5, Inc. (2023). NGINX – High Performance Load Balancer, Web Server, & Reverse Proxy. https://nginx.org`,
+    "Next.js": `[${idx++}] Vercel Inc. (2023). Next.js – The React Framework for the Web. https://nextjs.org`,
+    "Prisma": `[${idx++}] Prisma Data, Inc. (2023). Prisma – Next-generation Node.js and TypeScript ORM. https://prisma.io`,
   };
 
   const seen = new Set();
@@ -374,9 +374,13 @@ async function buildProjectDocx(data) {
     { num: "13.", title: "Development Methodology & Steps" },
     { num: "14.", title: "Estimated Project Timeline" },
     { num: "15.", title: "Recommended Project Structure" },
-    { num: "16.", title: "Conclusion" },
-    { num: "17.", title: "Future Scope" },
-    { num: "18.", title: "References & Bibliography" },
+    {
+      num: "16.",
+      title: "Generated Source Files"
+    },
+    { num: "17.", title: "Conclusion" },
+    { num: "18.", title: "Future Scope" },
+    { num: "19.", title: "References & Bibliography" },
   ];
 
   for (const entry of tocEntries) {
@@ -421,6 +425,7 @@ async function buildProjectDocx(data) {
     "Sample UI — Login / Registration Screen",
     "Sample UI — Dashboard / Main Screen",
     "Sample UI — Core Feature Screen",
+    "Generated Source File Summary",
   ];
 
   figureList.forEach((fig, i) => {
@@ -631,28 +636,28 @@ async function buildProjectDocx(data) {
       diagrams.architecture
         ? diagrams.architecture.split("\n")
         : [
-            `┌─────────────────────────────────────────────────────────┐`,
-            `│                    CLIENT LAYER                          │`,
-            `│   ┌─────────────────────────────────────────────────┐   │`,
-            `│   │  ${(data.techStack.frontend[0] || "React").padEnd(12)} Browser / Mobile App         │   │`,
-            `│   └──────────────────────┬──────────────────────────┘   │`,
-            `└──────────────────────────┼──────────────────────────────┘`,
-            `                           │  HTTPS / REST                 `,
-            `┌──────────────────────────┼──────────────────────────────┐`,
-            `│                 APPLICATION LAYER                        │`,
-            `│   ┌──────────────────────▼──────────────────────────┐   │`,
-            `│   │  ${(data.techStack.backend[0] || "Node.js").padEnd(12)} API Server (JWT Auth)       │   │`,
-            `│   │  Controllers → Services → Models                 │   │`,
-            `│   └──────────────────────┬──────────────────────────┘   │`,
-            `└──────────────────────────┼──────────────────────────────┘`,
-            `                           │  SQL / ORM Queries            `,
-            `┌──────────────────────────┼──────────────────────────────┐`,
-            `│                    DATA LAYER                            │`,
-            `│   ┌──────────────────────▼──────────────────────────┐   │`,
-            `│   │  ${(data.techStack.database[0] || "PostgreSQL").padEnd(12)} Primary Database          │   │`,
-            `│   └─────────────────────────────────────────────────┘   │`,
-            `└─────────────────────────────────────────────────────────┘`,
-          ],
+          `┌─────────────────────────────────────────────────────────┐`,
+          `│                    CLIENT LAYER                          │`,
+          `│   ┌─────────────────────────────────────────────────┐   │`,
+          `│   │  ${(data.techStack.frontend[0] || "React").padEnd(12)} Browser / Mobile App         │   │`,
+          `│   └──────────────────────┬──────────────────────────┘   │`,
+          `└──────────────────────────┼──────────────────────────────┘`,
+          `                           │  HTTPS / REST                 `,
+          `┌──────────────────────────┼──────────────────────────────┐`,
+          `│                 APPLICATION LAYER                        │`,
+          `│   ┌──────────────────────▼──────────────────────────┐   │`,
+          `│   │  ${(data.techStack.backend[0] || "Node.js").padEnd(12)} API Server (JWT Auth)       │   │`,
+          `│   │  Controllers → Services → Models                 │   │`,
+          `│   └──────────────────────┬──────────────────────────┘   │`,
+          `└──────────────────────────┼──────────────────────────────┘`,
+          `                           │  SQL / ORM Queries            `,
+          `┌──────────────────────────┼──────────────────────────────┐`,
+          `│                    DATA LAYER                            │`,
+          `│   ┌──────────────────────▼──────────────────────────┐   │`,
+          `│   │  ${(data.techStack.database[0] || "PostgreSQL").padEnd(12)} Primary Database          │   │`,
+          `│   └─────────────────────────────────────────────────┘   │`,
+          `└─────────────────────────────────────────────────────────┘`,
+        ],
       "System Architecture Diagram (Three-Tier)"
     ),
     spacer(80, 60),
@@ -663,20 +668,20 @@ async function buildProjectDocx(data) {
       diagrams.dfd0
         ? diagrams.dfd0.split("\n")
         : [
-            `                                                            `,
-            `  ┌───────────┐    Request / Input    ┌─────────────────┐ `,
-            `  │           │ ─────────────────────▶│                 │ `,
-            `  │   USER    │                        │  ${data.title.substring(0, 14).padEnd(14)} │ `,
-            `  │  (Actor)  │ ◀─────────────────────│     SYSTEM      │ `,
-            `  └───────────┘   Response / Output   └────────┬────────┘ `,
-            `                                               │           `,
-            `  ┌───────────┐    Admin Operations            │           `,
-            `  │   ADMIN   │ ─────────────────────▶─────────┘           `,
-            `  │  (Actor)  │                                            `,
-            `  └───────────┘                                            `,
-            `                                                            `,
-            `  External Systems: Email Provider, Payment Gateway (if applicable)`,
-          ],
+          `                                                            `,
+          `  ┌───────────┐    Request / Input    ┌─────────────────┐ `,
+          `  │           │ ─────────────────────▶│                 │ `,
+          `  │   USER    │                        │  ${data.title.substring(0, 14).padEnd(14)} │ `,
+          `  │  (Actor)  │ ◀─────────────────────│     SYSTEM      │ `,
+          `  └───────────┘   Response / Output   └────────┬────────┘ `,
+          `                                               │           `,
+          `  ┌───────────┐    Admin Operations            │           `,
+          `  │   ADMIN   │ ─────────────────────▶─────────┘           `,
+          `  │  (Actor)  │                                            `,
+          `  └───────────┘                                            `,
+          `                                                            `,
+          `  External Systems: Email Provider, Payment Gateway (if applicable)`,
+        ],
       "Level 0 DFD — Context Diagram"
     ),
     spacer(80, 60),
@@ -687,23 +692,23 @@ async function buildProjectDocx(data) {
       diagrams.dfd1
         ? diagrams.dfd1.split("\n")
         : [
-            `  USER ──▶ [1.0 Authentication] ──▶ D1: Users Store          `,
-            `              │                                               `,
-            `              ▼                                               `,
-            `         JWT Token                                            `,
-            `              │                                               `,
-            `              ▼                                               `,
-            `  USER ──▶ [2.0 Core Feature Management] ──▶ D2: Data Store  `,
-            `              │                                               `,
-            `              ▼                                               `,
-            `         Processed Output ──▶ USER                           `,
-            `              │                                               `,
-            `              ▼                                               `,
-            `  ADMIN ─▶ [3.0 Administration & Reporting] ──▶ D3: Logs     `,
-            `              │                                               `,
-            `              ▼                                               `,
-            `         Audit Trail ──▶ ADMIN                               `,
-          ],
+          `  USER ──▶ [1.0 Authentication] ──▶ D1: Users Store          `,
+          `              │                                               `,
+          `              ▼                                               `,
+          `         JWT Token                                            `,
+          `              │                                               `,
+          `              ▼                                               `,
+          `  USER ──▶ [2.0 Core Feature Management] ──▶ D2: Data Store  `,
+          `              │                                               `,
+          `              ▼                                               `,
+          `         Processed Output ──▶ USER                           `,
+          `              │                                               `,
+          `              ▼                                               `,
+          `  ADMIN ─▶ [3.0 Administration & Reporting] ──▶ D3: Logs     `,
+          `              │                                               `,
+          `              ▼                                               `,
+          `         Audit Trail ──▶ ADMIN                               `,
+        ],
       "Level 1 DFD — Detailed Process Decomposition"
     ),
     spacer(80, 60),
@@ -738,23 +743,23 @@ async function buildProjectDocx(data) {
       diagrams.usecase
         ? diagrams.usecase.split("\n")
         : [
-            `  ╔═══════════════════════════════════════════════════════╗`,
-            `  ║              SYSTEM BOUNDARY                          ║`,
-            `  ║                                                       ║`,
-            `  ║   ┌─────────────────────────────────────────────┐    ║`,
-            `  ║   │  (UC-01) Register / Login                   │    ║`,
-            `  ║   │  (UC-02) Browse & Search                    │◀───╬── User`,
-            `  ║   │  (UC-03) Manage Profile                     │    ║`,
-            `  ║   │  (UC-04) Perform Core Domain Action         │    ║`,
-            `  ║   └─────────────────────────────────────────────┘    ║`,
-            `  ║                                                       ║`,
-            `  ║   ┌─────────────────────────────────────────────┐    ║`,
-            `  ║   │  (UC-05) Manage Users                       │◀───╬── Admin`,
-            `  ║   │  (UC-06) View System Reports                │    ║`,
-            `  ║   │  (UC-07) Configure System Settings          │    ║`,
-            `  ║   └─────────────────────────────────────────────┘    ║`,
-            `  ╚═══════════════════════════════════════════════════════╝`,
-          ],
+          `  ╔═══════════════════════════════════════════════════════╗`,
+          `  ║              SYSTEM BOUNDARY                          ║`,
+          `  ║                                                       ║`,
+          `  ║   ┌─────────────────────────────────────────────┐    ║`,
+          `  ║   │  (UC-01) Register / Login                   │    ║`,
+          `  ║   │  (UC-02) Browse & Search                    │◀───╬── User`,
+          `  ║   │  (UC-03) Manage Profile                     │    ║`,
+          `  ║   │  (UC-04) Perform Core Domain Action         │    ║`,
+          `  ║   └─────────────────────────────────────────────┘    ║`,
+          `  ║                                                       ║`,
+          `  ║   ┌─────────────────────────────────────────────┐    ║`,
+          `  ║   │  (UC-05) Manage Users                       │◀───╬── Admin`,
+          `  ║   │  (UC-06) View System Reports                │    ║`,
+          `  ║   │  (UC-07) Configure System Settings          │    ║`,
+          `  ║   └─────────────────────────────────────────────┘    ║`,
+          `  ╚═══════════════════════════════════════════════════════╝`,
+        ],
       "Use Case Diagram"
     ),
     spacer(80, 60),
@@ -763,29 +768,29 @@ async function buildProjectDocx(data) {
       diagrams.sequence
         ? diagrams.sequence.split("\n")
         : [
-            `  Client          API Server         Database            `,
-            `    │                 │                  │               `,
-            `    │  POST /login    │                  │               `,
-            `    │ ──────────────▶ │                  │               `,
-            `    │                 │  SELECT user     │               `,
-            `    │                 │ ───────────────▶ │               `,
-            `    │                 │  user record     │               `,
-            `    │                 │ ◀─────────────── │               `,
-            `    │                 │  bcrypt compare  │               `,
-            `    │                 │  sign JWT token  │               `,
-            `    │  200 + JWT      │                  │               `,
-            `    │ ◀────────────── │                  │               `,
-            `    │                 │                  │               `,
-            `    │  GET /protected │                  │               `,
-            `    │  Authorization: │                  │               `,
-            `    │  Bearer <token> │                  │               `,
-            `    │ ──────────────▶ │                  │               `,
-            `    │                 │  verify JWT      │               `,
-            `    │                 │  fetch resource  │               `,
-            `    │                 │ ───────────────▶ │               `,
-            `    │  200 + data     │ ◀─────────────── │               `,
-            `    │ ◀────────────── │                  │               `,
-          ],
+          `  Client          API Server         Database            `,
+          `    │                 │                  │               `,
+          `    │  POST /login    │                  │               `,
+          `    │ ──────────────▶ │                  │               `,
+          `    │                 │  SELECT user     │               `,
+          `    │                 │ ───────────────▶ │               `,
+          `    │                 │  user record     │               `,
+          `    │                 │ ◀─────────────── │               `,
+          `    │                 │  bcrypt compare  │               `,
+          `    │                 │  sign JWT token  │               `,
+          `    │  200 + JWT      │                  │               `,
+          `    │ ◀────────────── │                  │               `,
+          `    │                 │                  │               `,
+          `    │  GET /protected │                  │               `,
+          `    │  Authorization: │                  │               `,
+          `    │  Bearer <token> │                  │               `,
+          `    │ ──────────────▶ │                  │               `,
+          `    │                 │  verify JWT      │               `,
+          `    │                 │  fetch resource  │               `,
+          `    │                 │ ───────────────▶ │               `,
+          `    │  200 + data     │ ◀─────────────── │               `,
+          `    │ ◀────────────── │                  │               `,
+        ],
       "Sequence Diagram — JWT Authentication Flow"
     ),
     spacer(),
@@ -894,10 +899,10 @@ async function buildProjectDocx(data) {
       spacing: { before: 80, after: 80 },
       shading: { type: ShadingType.CLEAR, fill: "0F172A" },
       border: {
-        top:    { style: BorderStyle.SINGLE, size: 4, color: BRAND_RED },
-        left:   { style: BorderStyle.SINGLE, size: 4, color: BRAND_RED },
+        top: { style: BorderStyle.SINGLE, size: 4, color: BRAND_RED },
+        left: { style: BorderStyle.SINGLE, size: 4, color: BRAND_RED },
         bottom: { style: BorderStyle.SINGLE, size: 4, color: BRAND_RED },
-        right:  { style: BorderStyle.SINGLE, size: 4, color: BRAND_RED },
+        right: { style: BorderStyle.SINGLE, size: 4, color: BRAND_RED },
       },
       children: data.folderStructure.split("\n").flatMap((line, i) => [
         ...(i > 0 ? [new TextRun({ break: 1 })] : []),
@@ -1099,10 +1104,10 @@ async function buildProjectDocx(data) {
       spacing: { before: 80, after: 80 },
       shading: { type: ShadingType.CLEAR, fill: "0F172A" },
       border: {
-        top:    { style: BorderStyle.SINGLE, size: 4, color: BRAND_RED },
-        left:   { style: BorderStyle.SINGLE, size: 4, color: BRAND_RED },
+        top: { style: BorderStyle.SINGLE, size: 4, color: BRAND_RED },
+        left: { style: BorderStyle.SINGLE, size: 4, color: BRAND_RED },
         bottom: { style: BorderStyle.SINGLE, size: 4, color: BRAND_RED },
-        right:  { style: BorderStyle.SINGLE, size: 4, color: BRAND_RED },
+        right: { style: BorderStyle.SINGLE, size: 4, color: BRAND_RED },
       },
       children: data.folderStructure.split("\n").flatMap((line, i) => [
         ...(i > 0 ? [new TextRun({ break: 1 })] : []),
@@ -1120,9 +1125,64 @@ async function buildProjectDocx(data) {
     bullet("server/src/middleware — Cross-cutting concerns: authentication guards, validation, logging."),
     spacer(),
   );
+  // SECTION - 16
+  if (data.generatedFiles?.length) {
+    children.push(
+      sectionHeading("16. Generated Source Files"),
+      body(
+        "This section contains AI-generated starter implementation files recommended for the project architecture. These files serve as the initial codebase foundation and can be extended during development."
+      ),
+      spacer(80, 60)
+    );
+
+    data.generatedFiles.forEach((file, idx) => {
+      children.push(
+        subHeading(`16.${idx + 1} ${file.path}`),
+
+        body(`Purpose: ${file.purpose || "Implementation File"}`),
+
+        makeTable(
+          ["Property", "Value"],
+          [
+            ["Path", file.path],
+            ["Language", file.language || "Unknown"],
+            ["Type", file.type || "General"]
+          ],
+          [30, 70]
+        ),
+
+        spacer(60, 60),
+
+        new Paragraph({
+          spacing: { before: 80, after: 80 },
+          shading: { type: ShadingType.CLEAR, fill: "0F172A" },
+          border: {
+            top: { style: BorderStyle.SINGLE, size: 4, color: BRAND_RED },
+            left: { style: BorderStyle.SINGLE, size: 4, color: BRAND_RED },
+            bottom: { style: BorderStyle.SINGLE, size: 4, color: BRAND_RED },
+            right: { style: BorderStyle.SINGLE, size: 4, color: BRAND_RED },
+          },
+          children: (file.content || "")
+            .split("\n")
+            .slice(0, 120)
+            .flatMap((line, i) => [
+              ...(i > 0 ? [new TextRun({ break: 1 })] : []),
+              new TextRun({
+                text: line,
+                size: 18,
+                font: "Courier New",
+                color: "94A3B8",
+              }),
+            ]),
+        }),
+
+        spacer(120, 60)
+      );
+    });
+  }
 
   // ══════════════════════════════════════════════════════════════
-  // SECTION 16 — CONCLUSION
+  // SECTION 17 — CONCLUSION
   // ══════════════════════════════════════════════════════════════
   children.push(
     sectionHeading("16. Conclusion"),
@@ -1141,7 +1201,7 @@ async function buildProjectDocx(data) {
   );
 
   // ══════════════════════════════════════════════════════════════
-  // SECTION 17 — FUTURE SCOPE
+  // SECTION 18 — FUTURE SCOPE
   // ══════════════════════════════════════════════════════════════
   children.push(
     sectionHeading("17. Future Scope"),
@@ -1158,7 +1218,7 @@ async function buildProjectDocx(data) {
   );
 
   // ══════════════════════════════════════════════════════════════
-  // SECTION 18 — REFERENCES
+  // SECTION 19 — REFERENCES
   // ══════════════════════════════════════════════════════════════
   children.push(
     sectionHeading("18. References & Bibliography"),
