@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { toast, Toaster } from "sonner";
 import {
@@ -8,92 +8,113 @@ import {
   Loader2, Lock, Mail, Menu, Network,
   RefreshCw, Server, Shield, Sparkles, Star,
   Twitter, Users, Wand2, X, Zap, Flag, CheckSquare,
-  Layout, History, Folder
+  Layout, History, Folder, BookOpen, List, AlignLeft
 } from "lucide-react";
 import { generateBlueprint, downloadDocx } from "../services/api";
 
-// ─── Types ────────────────────────────────────────────────────
+// ─── Types ─────────────────────────────────────────────────────
 type View = "landing" | "generating" | "results";
-type Priority = "high" | "medium" | "low";
-type HTTPMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
-interface Feature { name: string; description: string; priority: Priority; }
-interface DBColumn { name: string; type: string; note?: string; }
-interface DBTable { name: string; columns: DBColumn[]; }
-interface APIEndpoint { method: HTTPMethod; path: string; description: string; auth: boolean; }
-interface DevStep { step: number; title: string; description: string; }
-interface TimelinePhase { phase: string; duration: string; tasks: string[]; }
-interface TechStack { frontend: string[]; backend: string[]; database: string[]; devops: string[]; }
+// New dynamic section types matching updated aiService.js output
+interface SectionTable {
+  headers: string[];
+  rows: string[][];
+  colPercents?: number[];
+}
+interface SectionCodeBlock {
+  lines: string[];
+  caption?: string;
+}
+interface SubSection {
+  id: string;
+  number?: string;
+  title: string;
+  content?: string;
+  bullets?: string[];
+  table?: SectionTable;
+  codeBlock?: SectionCodeBlock;
+}
+interface Section {
+  id: string;
+  number?: string;
+  title: string;
+  content?: string;
+  bullets?: string[];
+  table?: SectionTable;
+  codeBlock?: SectionCodeBlock;
+  subsections?: SubSection[];
+}
+interface TechStack {
+  frontend: string[];
+  backend: string[];
+  database: string[];
+  devops: string[];
+}
+interface CoverMeta {
+  subtitle?: string;
+  institution?: string;
+}
+interface GeneratedFile {
+  path: string;
+  language?: string;
+  type?: string;
+  purpose?: string;
+  content?: string;
+}
 interface ProjectData {
-  title: string; tagline: string; description: string; category: string;
-  techStack: TechStack; features: Feature[]; database: DBTable[];
-  apis: APIEndpoint[]; devSteps: DevStep[]; timeline: TimelinePhase[];
-  folderStructure: string;
+  title: string;
+  tagline: string;
+  category: string;
+  techStack: TechStack;
+  sections: Section[];
+  coverMeta?: CoverMeta;
+  generatedFiles?: GeneratedFile[];
 }
 
-// ─── Constants ────────────────────────────────────────────────
+// ─── Constants ─────────────────────────────────────────────────
 const LOADING_STEPS = [
-  { icon: Brain, label: "Analyzing project requirements..." },
-  { icon: Layers, label: "Generating system architecture..." },
-  { icon: GitBranch, label: "Creating API endpoint structure..." },
-  { icon: Database, label: "Designing database schema..." },
-  { icon: CheckSquare, label: "Building development roadmap..." },
-  { icon: FolderOpen, label: "Preparing folder structure..." },
+  { icon: Brain,       label: "Analyzing prompt & planning structure..."     },
+  { icon: Layers,      label: "Building document skeleton & sections..."     },
+  { icon: AlignLeft,   label: "Writing detailed content — pass 1 of 2..."   },
+  { icon: GitBranch,   label: "Generating tables, APIs & diagrams..."        },
+  { icon: Database,    label: "Enriching database design & architecture..."  },
+  { icon: CheckSquare, label: "Finalizing all sections with full detail..."  },
+  { icon: FolderOpen,  label: "Assembling complete document blueprint..."    },
 ];
 
 const FEATURE_CARDS = [
-  { icon: Layers, title: "AI Architecture", description: "Complete system design with component relationships and data flow", gradient: "from-blue-500/20 to-blue-600/5" },
-  { icon: GitBranch, title: "API Blueprint", description: "Full REST API spec with methods, paths, params & auth requirements", gradient: "from-emerald-500/20 to-emerald-600/5" },
-  { icon: Database, title: "Database Schema", description: "Normalized table designs with relationships, indexes & column types", gradient: "from-purple-500/20 to-purple-600/5" },
-  { icon: Clock, title: "Timeline Estimation", description: "Phased development schedule with realistic milestones & deliverables", gradient: "from-[#FF4D00]/20 to-[#FF8C00]/5" },
-  { icon: Code2, title: "Tech Stack", description: "Curated technology recommendations tailored to your project needs", gradient: "from-cyan-500/20 to-cyan-600/5" },
-  { icon: FolderOpen, title: "Folder Structure", description: "Production-ready architecture with best-practice file organization", gradient: "from-pink-500/20 to-pink-600/5" },
+  { icon: AlignLeft,  title: "Prompt-Driven Sections",   description: "Define exactly which sections you want — the AI follows your instructions precisely.", gradient: "from-blue-500/20 to-blue-600/5" },
+  { icon: Database,   title: "Auto Tables & Diagrams",   description: "Relevant tables, schema, and ASCII diagrams are generated automatically per section.", gradient: "from-purple-500/20 to-purple-600/5" },
+  { icon: List,       title: "Subsections & Bullets",    description: "Nested subsections, bullet lists, and structured content generated to match your spec.", gradient: "from-emerald-500/20 to-emerald-600/5" },
+  { icon: Clock,      title: "Timeline Estimation",      description: "Phased development schedule with realistic milestones and deliverables.", gradient: "from-[#FF4D00]/20 to-[#FF8C00]/5" },
+  { icon: Code2,      title: "Tech Stack",               description: "Curated technology recommendations tailored to your project needs.", gradient: "from-cyan-500/20 to-cyan-600/5" },
+  { icon: Download,   title: "Word Report Download",     description: "Download a fully formatted .docx report with all your custom sections included.", gradient: "from-pink-500/20 to-pink-600/5" },
 ];
 
 const HOW_IT_WORKS = [
-  { step: "01", title: "Enter Your Idea", description: "Type any project concept — from 'E-commerce App' to 'AI Chatbot'. No technical knowledge required.", icon: Sparkles },
-  { step: "02", title: "AI Processes", description: "Our AI analyzes your idea across 50+ dimensions to generate a production-grade blueprint in seconds.", icon: Brain },
-  { step: "03", title: "Get Blueprint", description: "Download a complete Word document report ready for university submission.", icon: FileCode },
+  { step: "01", title: "Describe Your Project", description: "Provide a detailed prompt specifying your project, the sections you want, and any content requirements.", icon: Sparkles },
+  { step: "02", title: "AI Generates It",        description: "The AI strictly follows your section list — names, order, tables, and diagrams are all as you specified.", icon: Brain    },
+  { step: "03", title: "Download & Submit",      description: "Get a complete, downloadable Word report with every section exactly as you defined it.", icon: FileCode },
 ];
 
 const EXAMPLE_PROMPTS = [
-  "Food Delivery App", "AI Resume Builder", "E-commerce Platform",
-  "Student Attendance System", "Task Management Tool", "Healthcare Portal",
-  "Real Estate Platform", "Social Media Dashboard",
+  "Food Delivery App with sections: Introduction, System Architecture, Database Design, API Specification, Testing Strategy, Conclusion",
+  "AI Resume Builder with sections: Abstract, Problem Statement, Proposed Solution, Tech Stack, Features, Timeline",
+  "E-commerce Platform — 5 sections: Overview, Database Schema, REST APIs, Frontend Design, Deployment Plan",
+  "Student Attendance System — sections: Introduction, Objectives, System Design, Implementation, Results",
 ];
 
 const STATS = [
-  { value: "100+", label: "Blueprints Generated", icon: Zap },
-  { value: "20+", label: "Tech Stacks Supported", icon: Code2 },
-  { value: "4.9★", label: "Average Rating", icon: Star },
-  { value: "100+", label: "Developers Served", icon: Users },
+  { value: "100+", label: "Blueprints Generated", icon: Zap   },
+  { value: "20+",  label: "Tech Stacks Supported", icon: Code2 },
+  { value: "4.9★", label: "Average Rating",        icon: Star  },
+  { value: "100+", label: "Developers Served",     icon: Users },
 ];
 
-// ─── Utilities ────────────────────────────────────────────────
-function methodColor(m: HTTPMethod) {
-  const map: Record<HTTPMethod, string> = {
-    GET: "text-emerald-700 bg-emerald-50 border-emerald-200",
-    POST: "text-orange-700 bg-orange-50 border-orange-200",
-    PUT: "text-blue-700 bg-blue-50 border-blue-200",
-    PATCH: "text-purple-700 bg-purple-50 border-purple-200",
-    DELETE: "text-red-700 bg-red-50 border-red-200",
-  };
-  return map[m];
-}
-
-function priorityColor(p: Priority) {
-  const map = {
-    high: "text-[#E8320A] bg-[#E8320A]/8 border-[#E8320A]/20",
-    medium: "text-amber-600 bg-amber-50 border-amber-200",
-    low: "text-gray-400 bg-gray-50 border-gray-200",
-  };
-  return map[p];
-}
-
 const MANROPE = { fontFamily: '"Manrope", sans-serif' };
-const MONO = { fontFamily: '"JetBrains Mono", monospace' };
+const MONO    = { fontFamily: '"JetBrains Mono", monospace' };
 
-// ─── SkillDzire Logo ──────────────────────────────────────────
+// ─── SkillDzire Logo ───────────────────────────────────────────
 function SkillDzireLogo({ className = "" }: { className?: string }) {
   return (
     <img src="https://skilldzire.com/images/logo-skilldzire.png" alt="SkillDzire"
@@ -101,9 +122,8 @@ function SkillDzireLogo({ className = "" }: { className?: string }) {
   );
 }
 
-// ─── Navbar ───────────────────────────────────────────────────
+// ─── Navbar ────────────────────────────────────────────────────
 const NAV_LINKS = ["Home", "Features", "How It Works"];
-
 function Navbar({ onGetStarted }: { onGetStarted?: () => void }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -161,7 +181,7 @@ function Navbar({ onGetStarted }: { onGetStarted?: () => void }) {
   );
 }
 
-// ─── Hero Visual ──────────────────────────────────────────────
+// ─── Hero Visual ───────────────────────────────────────────────
 function HeroVisual() {
   return (
     <div className="relative w-full max-w-sm mx-auto lg:mx-0">
@@ -182,54 +202,41 @@ function HeroVisual() {
           <span className="bg-[#E8320A]/10 text-[#E8320A] text-[10px] px-2 py-0.5 rounded-full border border-[#E8320A]/20 font-semibold whitespace-nowrap">AI Generated</span>
         </div>
         <div className="mb-4">
-          <p className="text-gray-400 text-[10px] uppercase tracking-wider mb-2">Tech Stack</p>
-          <div className="flex flex-wrap gap-1.5">
-            {["React.js", "Node.js", "PostgreSQL", "Redis", "Docker"].map(t => (
-              <span key={t} className="bg-gray-50 border border-gray-200 text-gray-600 text-[11px] px-2 py-0.5 rounded-md">{t}</span>
-            ))}
-          </div>
-        </div>
-        <div className="mb-4">
-          <p className="text-gray-400 text-[10px] uppercase tracking-wider mb-2">Core Features</p>
+          <p className="text-gray-400 text-[10px] uppercase tracking-wider mb-2">Document Sections</p>
           <div className="space-y-1.5">
-            {["User Auth & RBAC", "Real-time Order Tracking", "Payment Processing", "Restaurant Dashboard"].map(f => (
-              <div key={f} className="flex items-center gap-2">
+            {["1. Introduction", "2. System Design", "3. Database Schema", "4. API Specification", "5. Testing & Conclusion"].map(s => (
+              <div key={s} className="flex items-center gap-2">
                 <div className="w-1 h-1 rounded-full bg-[#E8320A] flex-shrink-0" />
-                <span className="text-gray-500 text-xs">{f}</span>
+                <span className="text-gray-500 text-xs">{s}</span>
               </div>
             ))}
           </div>
         </div>
         <div>
           <div className="flex justify-between text-[10px] text-gray-400 mb-1.5">
-            <span>Est. Timeline</span><span>12 weeks</span>
+            <span>Blueprint Progress</span><span>Complete</span>
           </div>
           <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
             <motion.div className="h-full rounded-full" style={{ background: "linear-gradient(90deg, #E8320A, #FF6B00)" }}
-              initial={{ width: 0 }} animate={{ width: "75%" }} transition={{ delay: 1.2, duration: 1.5, ease: "easeOut" }} />
+              initial={{ width: 0 }} animate={{ width: "100%" }} transition={{ delay: 1.2, duration: 1.5, ease: "easeOut" }} />
           </div>
         </div>
       </motion.div>
       <motion.div initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 1.1 }}
         className="absolute -top-3 -right-4 bg-white border border-gray-200 rounded-xl px-3 py-2 flex items-center gap-2 shadow-lg">
-        <Database className="w-3.5 h-3.5 text-[#E8320A]" />
-        <span className="text-gray-600 text-xs font-medium">4 DB Tables</span>
+        <BookOpen className="w-3.5 h-3.5 text-[#E8320A]" />
+        <span className="text-gray-600 text-xs font-medium">Custom Sections</span>
       </motion.div>
       <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 1.4 }}
         className="absolute -bottom-3 -left-4 bg-white border border-gray-200 rounded-xl px-3 py-2 flex items-center gap-2 shadow-lg">
-        <GitBranch className="w-3.5 h-3.5 text-[#E8320A]" />
-        <span className="text-gray-600 text-xs font-medium">10 API Routes</span>
-      </motion.div>
-      <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 1.7 }}
-        className="absolute top-1/3 -right-12 hidden xl:flex bg-white border border-gray-200 rounded-xl px-3 py-2 flex-col items-center gap-1 shadow-lg">
-        <Zap className="w-3.5 h-3.5 text-[#E8320A]" />
-        <span className="text-gray-600 text-[10px] font-medium">Instant</span>
+        <Download className="w-3.5 h-3.5 text-[#E8320A]" />
+        <span className="text-gray-600 text-xs font-medium">Word Export</span>
       </motion.div>
     </div>
   );
 }
 
-// ─── Hero Section ─────────────────────────────────────────────
+// ─── Hero Section ──────────────────────────────────────────────
 function HeroSection({ onGenerate }: { onGenerate: (p: string) => void }) {
   const [input, setInput] = useState("");
   return (
@@ -249,14 +256,14 @@ function HeroSection({ onGenerate }: { onGenerate: (p: string) => void }) {
             </motion.div>
             <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }}
               className="text-4xl sm:text-5xl lg:text-[3.2rem] font-black leading-[1.1] tracking-tight mb-5 text-gray-900" style={MANROPE}>
-              Generate Complete{" "}
+              Generate{" "}
               <span style={{ background: "linear-gradient(135deg, #E8320A 0%, #FF6B1A 50%, #FF8C00 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-                Project Blueprints
-              </span>{" "}with AI
+                Custom-Section
+              </span>{" "}Project Docs
             </motion.h1>
             <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}
               className="text-gray-500 text-lg leading-relaxed mb-8 max-w-lg">
-              Turn any software idea into a production-ready blueprint — tech stack, APIs, database schema, dev roadmap & downloadable Word report. Instantly.
+              Describe your project and specify exactly which sections you want. The AI follows your instructions precisely — no unwanted boilerplate.
             </motion.p>
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.3 }}
               className="flex flex-col sm:flex-row gap-3 mb-5">
@@ -264,23 +271,24 @@ function HeroSection({ onGenerate }: { onGenerate: (p: string) => void }) {
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
                   <Wand2 className="w-4 h-4 text-gray-400" />
                 </div>
-                <input id="hero-input" type="text" value={input}
+                <textarea id="hero-input" value={input}
                   onChange={e => setInput(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && input.trim() && onGenerate(input)}
-                  placeholder="e.g. Food Delivery App, AI Resume Builder..."
-                  className="w-full bg-white border border-gray-300 rounded-xl pl-11 pr-4 py-3.5 text-gray-900 text-sm placeholder:text-gray-400 focus:outline-none focus:border-[#E8320A] focus:ring-2 focus:ring-[#E8320A]/15 transition-all shadow-sm" />
+                  onKeyDown={e => e.key === "Enter" && !e.shiftKey && input.trim() && (e.preventDefault(), onGenerate(input))}
+                  placeholder="Describe your project and list the sections you want, e.g. 'Food Delivery App with sections: Introduction, System Design, Database, API Spec, Conclusion. PROMPT should be under 5000 characters.'"
+                  rows={3}
+                  className="w-full bg-white border border-gray-300 rounded-xl pl-11 pr-4 py-3.5 text-gray-900 text-sm placeholder:text-gray-400 focus:outline-none focus:border-[#E8320A] focus:ring-2 focus:ring-[#E8320A]/15 transition-all shadow-sm resize-none" />
               </div>
               <button onClick={() => input.trim() && onGenerate(input)}
-                className="flex items-center justify-center gap-2 text-white text-sm font-bold px-6 py-3.5 rounded-xl transition-all duration-200 whitespace-nowrap shadow-sm hover:shadow-md"
+                className="flex items-center justify-center gap-2 text-white text-sm font-bold px-6 py-3.5 rounded-xl transition-all duration-200 whitespace-nowrap shadow-sm hover:shadow-md self-end"
                 style={{ background: "linear-gradient(135deg, #E8320A, #FF6B00)" }}
                 onMouseEnter={e => (e.currentTarget.style.filter = "brightness(1.08)")}
                 onMouseLeave={e => (e.currentTarget.style.filter = "brightness(1)")}>
-                Generate Blueprint <ArrowRight className="w-4 h-4" />
+                Generate <ArrowRight className="w-4 h-4" />
               </button>
             </motion.div>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.65 }}
-              className="flex flex-wrap items-center gap-2">
-              <span className="text-gray-400 text-xs">Try:</span>
+              className="flex flex-wrap items-start gap-2">
+              <span className="text-gray-400 text-xs mt-1">Try:</span>
               {["Food Delivery App", "AI Resume Builder", "E-commerce Platform", "Task Manager"].map(p => (
                 <button key={p} onClick={() => onGenerate(p)}
                   className="text-xs text-gray-500 hover:text-[#E8320A] bg-gray-50 hover:bg-[#E8320A]/5 border border-gray-200 hover:border-[#E8320A]/30 rounded-full px-3 py-1 transition-all duration-150">{p}</button>
@@ -294,7 +302,7 @@ function HeroSection({ onGenerate }: { onGenerate: (p: string) => void }) {
   );
 }
 
-// ─── Features Section ─────────────────────────────────────────
+// ─── Features Section ──────────────────────────────────────────
 function FeaturesSection() {
   return (
     <section className="py-20 relative bg-gray-50">
@@ -308,7 +316,7 @@ function FeaturesSection() {
             Everything You Need to{" "}
             <span style={{ background: "linear-gradient(135deg, #E8320A, #FF8C00)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Start Building</span>
           </h2>
-          <p className="text-gray-500 max-w-md mx-auto text-sm">No more guessing. Get a complete technical blueprint for any project idea in seconds.</p>
+          <p className="text-gray-500 max-w-md mx-auto text-sm">Describe your project, specify your sections — get a complete, structured document in seconds.</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {FEATURE_CARDS.map((card, i) => (
@@ -327,14 +335,14 @@ function FeaturesSection() {
   );
 }
 
-// ─── How It Works ─────────────────────────────────────────────
+// ─── How It Works ──────────────────────────────────────────────
 function HowItWorksSection() {
   return (
     <section className="py-20 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-14">
           <h2 className="text-3xl sm:text-4xl font-black text-gray-900 mb-3" style={MANROPE}>How It Works</h2>
-          <p className="text-gray-500 text-sm">From idea to full blueprint in under 15 seconds.</p>
+          <p className="text-gray-500 text-sm">From a detailed prompt to a full custom-section document in seconds.</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
           <div className="hidden md:block absolute top-10 left-[calc(33.33%+1rem)] right-[calc(33.33%+1rem)] h-px border-t border-dashed border-gray-300" />
@@ -360,16 +368,16 @@ function ExamplePromptsSection({ onGenerate }: { onGenerate: (p: string) => void
     <section className="py-14 bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white border border-gray-200 rounded-3xl p-8 sm:p-10 relative overflow-hidden shadow-sm">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-px h-16 bg-gradient-to-b from-[#E8320A]/40 to-transparent" />
           <div className="text-center mb-8">
-            <h2 className="text-2xl sm:text-3xl font-black text-gray-900 mb-2" style={MANROPE}>Try These Project Ideas</h2>
-            <p className="text-gray-500 text-sm">Click any idea to instantly generate its full blueprint.</p>
+            <h2 className="text-2xl sm:text-3xl font-black text-gray-900 mb-2" style={MANROPE}>Example Prompts</h2>
+            <p className="text-gray-500 text-sm">Click any to instantly generate a blueprint.</p>
           </div>
-          <div className="flex flex-wrap justify-center gap-3">
+          <div className="flex flex-col gap-3">
             {EXAMPLE_PROMPTS.map(p => (
               <button key={p} onClick={() => onGenerate(p)}
-                className="group flex items-center gap-2 bg-gray-50 hover:bg-[#E8320A]/5 border border-gray-200 hover:border-[#E8320A]/30 text-gray-600 hover:text-[#E8320A] text-sm px-5 py-2.5 rounded-xl transition-all duration-200">
-                {p}<ChevronRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 -translate-x-1 group-hover:translate-x-0 transition-all" />
+                className="group flex items-center gap-2 bg-gray-50 hover:bg-[#E8320A]/5 border border-gray-200 hover:border-[#E8320A]/30 text-gray-600 hover:text-[#E8320A] text-sm px-5 py-3 rounded-xl transition-all duration-200 text-left">
+                <span className="flex-1">{p}</span>
+                <ChevronRight className="w-3.5 h-3.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-all" />
               </button>
             ))}
           </div>
@@ -412,17 +420,18 @@ function CTASection({ onGenerate }: { onGenerate: (p: string) => void }) {
               <Brain className="w-7 h-7 text-white" />
             </div>
             <h2 className="text-3xl sm:text-4xl font-black text-gray-900 mb-3" style={MANROPE}>
-              Start Building Your{" "}
+              Generate Your{" "}
               <span style={{ background: "linear-gradient(135deg, #E8320A, #FF8C00)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Blueprint</span>{" "}Now
             </h2>
-            <p className="text-gray-500 text-sm mb-8">Enter any project idea and get a complete technical blueprint + downloadable report in seconds.</p>
+            <p className="text-gray-500 text-sm mb-8">Enter a detailed prompt specifying your project and the sections you want.</p>
             <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-              <input type="text" value={input} onChange={e => setInput(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && input.trim() && onGenerate(input)}
-                placeholder="Enter your project idea..."
-                className="flex-1 bg-white border border-gray-300 rounded-xl px-4 py-3 text-gray-900 text-sm placeholder:text-gray-400 focus:outline-none focus:border-[#E8320A] focus:ring-2 focus:ring-[#E8320A]/15 transition-all" />
+              <textarea value={input} onChange={e => setInput(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && !e.shiftKey && input.trim() && (e.preventDefault(), onGenerate(input))}
+                placeholder="e.g. Food Delivery App with sections: Introduction, System Design, Database..."
+                rows={2}
+                className="flex-1 bg-white border border-gray-300 rounded-xl px-4 py-3 text-gray-900 text-sm placeholder:text-gray-400 focus:outline-none focus:border-[#E8320A] focus:ring-2 focus:ring-[#E8320A]/15 transition-all resize-none" />
               <button onClick={() => input.trim() && onGenerate(input)}
-                className="flex items-center justify-center gap-2 text-white text-sm font-bold px-6 py-3 rounded-xl transition-all whitespace-nowrap shadow-sm hover:shadow-md"
+                className="flex items-center justify-center gap-2 text-white text-sm font-bold px-6 py-3 rounded-xl transition-all whitespace-nowrap shadow-sm hover:shadow-md self-end"
                 style={{ background: "linear-gradient(135deg, #E8320A, #FF6B00)" }}
                 onMouseEnter={e => (e.currentTarget.style.filter = "brightness(1.08)")}
                 onMouseLeave={e => (e.currentTarget.style.filter = "brightness(1)")}>
@@ -436,24 +445,18 @@ function CTASection({ onGenerate }: { onGenerate: (p: string) => void }) {
   );
 }
 
-function Footer() {
+function FooterSection() {
   return (
     <footer className="border-t border-gray-200 py-14 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
           <div>
             <div className="mb-4"><SkillDzireLogo className="h-8 w-auto" /></div>
-            <p className="text-gray-400 text-xs leading-relaxed mb-5">Empowering students & developers with AI-powered software project blueprints. Build faster. Build smarter.</p>
-            <div className="flex items-center gap-4">
-              {[Twitter, Github, Linkedin].map((Icon, i) => (
-                <a key={i} href="#" className="text-gray-400 hover:text-[#E8320A] transition-colors"><Icon className="w-4 h-4" /></a>
-              ))}
-              <a href="#" className="text-gray-400 hover:text-[#E8320A] transition-colors"><Mail className="w-4 h-4" /></a>
-            </div>
+            <p className="text-gray-400 text-xs leading-relaxed mb-5">Empowering students & developers with AI-powered project blueprints. Build faster. Build smarter.</p>
           </div>
           {[
-            { heading: "Product", links: ["Features", "How It Works"] },
-            { heading: "Company", links: ["About SkillDzire", "Contact"] },
+            { heading: "Product",  links: ["Features", "How It Works"] },
+            { heading: "Company",  links: ["About SkillDzire", "Contact"] },
           ].map(col => (
             <div key={col.heading}>
               <h4 className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-4">{col.heading}</h4>
@@ -481,32 +484,30 @@ function LandingPage({ onGenerate }: { onGenerate: (p: string) => void }) {
       <ExamplePromptsSection onGenerate={onGenerate} />
       <StatsSection />
       <CTASection onGenerate={onGenerate} />
-      <Footer />
+      <FooterSection />
     </>
   );
 }
 
-// ─── Generating View ──────────────────────────────────────────
+// ─── Generating View ───────────────────────────────────────────
 function GeneratingView({ prompt, onComplete }: { prompt: string; onComplete: () => void }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [completed, setCompleted] = useState<number[]>([]);
   const [waiting, setWaiting] = useState(false);
 
-  // Animate steps at 1.1s each, stop at last step — hold it spinning until API resolves
   useEffect(() => {
     if (currentStep >= LOADING_STEPS.length - 1) return;
     const t = setTimeout(() => {
       setCompleted(prev => [...prev, currentStep]);
       setCurrentStep(prev => prev + 1);
-    }, 1100);
+    }, 5000);
     return () => clearTimeout(t);
   }, [currentStep]);
 
-  // On last step: wait briefly then await the already-running API promise
   useEffect(() => {
     if (currentStep === LOADING_STEPS.length - 1 && !waiting) {
       setWaiting(true);
-      setTimeout(() => { onComplete(); }, 400);
+      onComplete();
     }
   }, [currentStep, waiting, onComplete]);
 
@@ -526,7 +527,7 @@ function GeneratingView({ prompt, onComplete }: { prompt: string; onComplete: ()
           </div>
         </div>
         <h2 className="text-gray-900 text-2xl font-black text-center mb-2" style={MANROPE}>Generating Blueprint</h2>
-        <p className="text-gray-500 text-sm text-center mb-10 max-w-xs mx-auto truncate">"{prompt}"</p>
+        <p className="text-gray-500 text-sm text-center mb-10 max-w-xs mx-auto line-clamp-2">"{prompt}"</p>
         <div className="space-y-2.5 mb-8">
           {LOADING_STEPS.map((step, i) => {
             const done = completed.includes(i);
@@ -547,26 +548,16 @@ function GeneratingView({ prompt, onComplete }: { prompt: string; onComplete: ()
           <motion.div className="h-full rounded-full" style={{ background: "linear-gradient(90deg, #E8320A, #FF8C00)" }}
             animate={{ width: `${progress}%` }} transition={{ duration: 0.5 }} />
         </div>
-        <div className="text-center">
+        <div className="text-center space-y-1">
           <span className="text-gray-400 text-xs" style={MONO}>{progress}%</span>
+          <p className="text-gray-300 text-[10px]">Detailed reports take 30–90 seconds — hang tight!</p>
         </div>
       </div>
     </div>
   );
 }
 
-// ─── Results Dashboard ────────────────────────────────────────
-const RESULT_SECTIONS = [
-  { id: "overview", label: "Overview", icon: Layers },
-  { id: "techstack", label: "Tech Stack", icon: Code2 },
-  { id: "features", label: "Core Features", icon: CheckSquare },
-  { id: "database", label: "Database", icon: Database },
-  { id: "apis", label: "API Endpoints", icon: GitBranch },
-  { id: "devsteps", label: "Dev Steps", icon: Flag },
-  { id: "timeline", label: "Timeline", icon: Clock },
-  { id: "structure", label: "Folder Structure", icon: Folder },
-];
-
+// ─── Results Dashboard (dynamic sections) ─────────────────────
 function CopyBtn({ text, small = false }: { text: string; small?: boolean }) {
   const [copied, setCopied] = useState(false);
   return (
@@ -578,21 +569,126 @@ function CopyBtn({ text, small = false }: { text: string; small?: boolean }) {
   );
 }
 
-function Card({ id, icon: Icon, title, children, copyText }: {
-  id: string; icon: React.ElementType; title: string; children: React.ReactNode; copyText?: string;
-}) {
+// Renders a table block inside a section
+function SectionTableView({ table }: { table: SectionTable }) {
+  const cols = table.headers.length;
   return (
-    <div id={id} className="bg-white border border-gray-200 rounded-2xl overflow-hidden mb-4 scroll-mt-4 shadow-sm">
+    <div className="overflow-x-auto rounded-xl border border-gray-100 mb-4">
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="bg-gray-900 border-b border-gray-700">
+            {table.headers.map((h, i) => (
+              <th key={i} className="text-left text-white font-semibold px-4 py-2.5 text-[11px] uppercase tracking-wider">{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {table.rows.map((row, ri) => (
+            <tr key={ri} className={`border-b border-gray-50 last:border-0 ${ri % 2 === 0 ? "bg-white" : "bg-orange-50/40"}`}>
+              {row.map((cell, ci) => (
+                <td key={ci} className="px-4 py-2.5 text-gray-600 text-xs leading-relaxed">{cell}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// Renders a code/diagram block inside a section
+function SectionCodeView({ codeBlock }: { codeBlock: SectionCodeBlock }) {
+  return (
+    <div className="mb-4">
+      <pre className="bg-gray-900 border border-gray-800 rounded-xl p-4 text-xs text-gray-300 overflow-x-auto leading-loose whitespace-pre-wrap" style={MONO}>
+        {codeBlock.lines.join("\n")}
+      </pre>
+      {codeBlock.caption && (
+        <p className="text-center text-gray-400 text-[11px] mt-1.5 italic">Figure: {codeBlock.caption}</p>
+      )}
+    </div>
+  );
+}
+
+// Renders all content for a subsection or section block
+function ContentBlock({ block }: { block: Pick<Section, "content" | "bullets" | "table" | "codeBlock"> }) {
+  return (
+    <>
+      {block.content && (
+        <p className="text-gray-600 text-sm leading-relaxed mb-3">{block.content}</p>
+      )}
+      {block.bullets && block.bullets.length > 0 && (
+        <ul className="space-y-1.5 mb-3">
+          {block.bullets.map((b, i) => (
+            <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#E8320A] flex-shrink-0 mt-1.5" />
+              <span className="leading-relaxed">{b}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {block.table && <SectionTableView table={block.table} />}
+      {block.codeBlock && <SectionCodeView codeBlock={block.codeBlock} />}
+    </>
+  );
+}
+
+// Full section card with subsections
+function SectionCard({ section }: { section: Section }) {
+  const sectionLabel = section.number ? `${section.number}. ${section.title}` : section.title;
+  // Flatten all text for copy
+  const flatText = [
+    sectionLabel,
+    section.content || "",
+    ...(section.bullets || []),
+    ...(section.subsections || []).flatMap(s => [
+      `${s.number ? s.number + " " : ""}${s.title}`,
+      s.content || "",
+      ...(s.bullets || []),
+    ]),
+  ].filter(Boolean).join("\n");
+
+  return (
+    <div id={`section-${section.id}`} className="bg-white border border-gray-200 rounded-2xl overflow-hidden mb-4 scroll-mt-4 shadow-sm">
+      {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-[#E8320A]/8 flex items-center justify-center">
-            <Icon className="w-4 h-4 text-[#E8320A]" />
+            <BookOpen className="w-4 h-4 text-[#E8320A]" />
           </div>
-          <h3 className="text-gray-900 font-bold text-sm" style={MANROPE}>{title}</h3>
+          <h3 className="text-gray-900 font-bold text-sm" style={MANROPE}>{sectionLabel}</h3>
         </div>
-        {copyText && <CopyBtn text={copyText} />}
+        <CopyBtn text={flatText} />
       </div>
-      <div className="p-5">{children}</div>
+
+      {/* Body */}
+      <div className="p-5">
+        {/* Section-level content (shown when no subsections, or as intro) */}
+        {section.content && (!section.subsections || section.subsections.length === 0) && (
+          <ContentBlock block={section} />
+        )}
+        {section.content && section.subsections && section.subsections.length > 0 && (
+          <p className="text-gray-600 text-sm leading-relaxed mb-5">{section.content}</p>
+        )}
+        {!section.content && (!section.subsections || section.subsections.length === 0) && (
+          <ContentBlock block={section} />
+        )}
+
+        {/* Subsections */}
+        {section.subsections && section.subsections.length > 0 && (
+          <div className="space-y-5">
+            {section.subsections.map(sub => (
+              <div key={sub.id} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                <h4 className="text-gray-800 font-semibold text-sm mb-3" style={MANROPE}>
+                  {sub.number ? <span className="text-[#E8320A] mr-1.5">{sub.number}</span> : null}
+                  {sub.title}
+                </h4>
+                <ContentBlock block={sub} />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -600,16 +696,14 @@ function Card({ id, icon: Icon, title, children, copyText }: {
 function ResultsDashboard({ data, prompt, onBack, onRegenerate }: {
   data: ProjectData; prompt: string; onBack: () => void; onRegenerate: () => void;
 }) {
-  const [activeSection, setActiveSection] = useState("overview");
+  const [activeSection, setActiveSection] = useState(data.sections[0]?.id ?? "");
   const [mobileSidebar, setMobileSidebar] = useState(false);
   const [downloading, setDownloading] = useState(false);
-  // ← This ref points to the scrollable content area only
   const contentRef = useRef<HTMLDivElement>(null);
 
   const scrollTo = (id: string) => {
     setActiveSection(id);
-    // Scroll within the content pane, not the whole page
-    const el = contentRef.current?.querySelector(`#${id}`);
+    const el = contentRef.current?.querySelector(`#section-${id}`);
     el?.scrollIntoView({ behavior: "smooth", block: "start" });
     setMobileSidebar(false);
   };
@@ -627,32 +721,43 @@ function ResultsDashboard({ data, prompt, onBack, onRegenerate }: {
   };
 
   const allText = [
-    `PROJECT: ${data.title}`, `TAGLINE: ${data.tagline}`, `\n${data.description}`,
+    `PROJECT: ${data.title}`,
+    `TAGLINE: ${data.tagline}`,
+    `CATEGORY: ${data.category}`,
     `\nTECH STACK:\n${Object.entries(data.techStack).map(([k, v]) => `${k}: ${v.join(", ")}`).join("\n")}`,
-    `\nFEATURES:\n${data.features.map(f => `- ${f.name}: ${f.description}`).join("\n")}`,
-    `\nAPI ENDPOINTS:\n${data.apis.map(a => `${a.method} ${a.path} — ${a.description}`).join("\n")}`,
-    `\nFOLDER STRUCTURE:\n${data.folderStructure}`,
+    `\n`,
+    ...(data.sections || []).map(s => [
+      `${s.number ? s.number + ". " : ""}${s.title}`,
+      s.content || "",
+      ...(s.bullets || []).map(b => `• ${b}`),
+      ...(s.subsections || []).flatMap(sub => [
+        `  ${sub.number ? sub.number + " " : ""}${sub.title}`,
+        sub.content ? `  ${sub.content}` : "",
+        ...(sub.bullets || []).map(b => `  • ${b}`),
+      ]),
+    ].filter(Boolean).join("\n")),
   ].join("\n");
 
   const SidebarContent = () => (
     <div className="p-3">
-      <div className="text-gray-400 text-[10px] uppercase tracking-widest px-2 mb-2 mt-1">Sections</div>
-      {RESULT_SECTIONS.map(s => (
+      <div className="text-gray-400 text-[10px] uppercase tracking-widest px-2 mb-2 mt-1">Document Sections</div>
+      {(data.sections || []).map(s => (
         <button key={s.id} onClick={() => scrollTo(s.id)}
-          className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs mb-0.5 transition-all duration-150 ${
+          className={`w-full flex items-start gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs mb-0.5 transition-all duration-150 ${
             activeSection === s.id ? "text-[#E8320A] bg-[#E8320A]/8 border border-[#E8320A]/15" : "text-gray-500 hover:text-gray-900 hover:bg-gray-50 border border-transparent"}`}>
-          <s.icon className="w-3.5 h-3.5 flex-shrink-0" />{s.label}
+          <BookOpen className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+          <span className="leading-snug">
+            {s.number ? <span className="font-semibold">{s.number}. </span> : null}
+            {s.title}
+          </span>
         </button>
       ))}
     </div>
   );
 
   return (
-    // ── KEY FIX: outer container is fixed height, no overflow ──
-    // The page body does NOT scroll. Only the content pane scrolls.
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
-
-      {/* ── Top Bar ─────────────────────────────────────────── */}
+      {/* Top Bar */}
       <div className="flex-shrink-0 bg-white/95 backdrop-blur-xl border-b border-gray-200 h-14 flex items-center px-4 sm:px-6 gap-3 shadow-sm z-40">
         <SkillDzireLogo className="h-7 w-auto flex-shrink-0" />
         <div className="w-px h-5 bg-gray-200 flex-shrink-0" />
@@ -663,12 +768,13 @@ function ResultsDashboard({ data, prompt, onBack, onRegenerate }: {
         <div className="w-px h-5 bg-gray-200 flex-shrink-0" />
         <div className="min-w-0 flex-1">
           <h1 className="text-gray-900 font-bold text-sm truncate" style={MANROPE}>{data.title}</h1>
-          <div className="text-gray-400 text-[10px] hidden sm:block">{data.category} · {data.techStack.frontend.slice(0, 2).join(", ")}</div>
+          <div className="text-gray-400 text-[10px] hidden sm:block">
+            {data.category} · {(data.sections || []).length} sections
+          </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Download Doc button */}
           <button onClick={handleDownloadDocx} disabled={downloading}
-            className="flex items-center gap-1.5 text-xs font-semibold text-white px-3 py-1.5 rounded-lg transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 text-xs font-semibold text-white px-3 py-1.5 rounded-lg transition-all shadow-sm disabled:opacity-60"
             style={{ background: "linear-gradient(135deg, #1d4ed8, #2563eb)" }}
             onMouseEnter={e => !downloading && (e.currentTarget.style.filter = "brightness(1.1)")}
             onMouseLeave={e => (e.currentTarget.style.filter = "brightness(1)")}>
@@ -693,182 +799,78 @@ function ResultsDashboard({ data, prompt, onBack, onRegenerate }: {
         </div>
       </div>
 
-      {/* ── Body: sidebar + scrollable content ──────────────── */}
-      <div className="flex flex-1 min-h-0"> {/* min-h-0 is critical — lets children shrink */}
-
-        {/* Desktop sidebar — does NOT scroll with content */}
-        <aside className="hidden lg:flex flex-col w-56 border-r border-gray-200 bg-white flex-shrink-0 overflow-y-auto">
+      {/* Body */}
+      <div className="flex flex-1 min-h-0">
+        {/* Desktop Sidebar */}
+        <aside className="hidden lg:flex flex-col w-60 border-r border-gray-200 bg-white flex-shrink-0 overflow-y-auto">
           <SidebarContent />
         </aside>
 
-        {/* Mobile sidebar overlay */}
+        {/* Mobile Sidebar */}
         <AnimatePresence>
           {mobileSidebar && (
             <>
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 className="fixed inset-0 z-30 bg-black/30 lg:hidden" onClick={() => setMobileSidebar(false)} />
-              <motion.aside initial={{ x: -224 }} animate={{ x: 0 }} exit={{ x: -224 }}
+              <motion.aside initial={{ x: -240 }} animate={{ x: 0 }} exit={{ x: -240 }}
                 transition={{ type: "spring", damping: 28, stiffness: 300 }}
-                className="fixed top-14 left-0 bottom-0 z-40 w-56 bg-white border-r border-gray-200 overflow-y-auto lg:hidden">
+                className="fixed top-14 left-0 bottom-0 z-40 w-60 bg-white border-r border-gray-200 overflow-y-auto lg:hidden">
                 <SidebarContent />
               </motion.aside>
             </>
           )}
         </AnimatePresence>
 
-        {/* ── Main content — THIS is the only thing that scrolls ── */}
+        {/* Main content */}
         <main ref={contentRef} className="flex-1 overflow-y-auto min-w-0">
           <div className="max-w-3xl mx-auto p-4 sm:p-6">
 
-            <Card id="overview" icon={Layers} title="Project Overview" copyText={`${data.title}\n${data.tagline}\n\n${data.description}`}>
-              <div className="flex flex-wrap gap-2 mb-4">
+            {/* Project meta card */}
+            <div className="bg-white border border-gray-200 rounded-2xl p-5 mb-4 shadow-sm">
+              <div className="flex flex-wrap gap-2 mb-3">
                 <span className="text-[#E8320A] bg-[#E8320A]/8 border border-[#E8320A]/15 text-xs px-3 py-1 rounded-full font-semibold">{data.category}</span>
-                <span className="text-gray-500 bg-gray-50 border border-gray-200 text-xs px-3 py-1 rounded-full">Full Stack</span>
+                {data.techStack?.frontend?.[0] && (
+                  <span className="text-gray-500 bg-gray-50 border border-gray-200 text-xs px-3 py-1 rounded-full">{data.techStack.frontend[0]}</span>
+                )}
+                {data.techStack?.backend?.[0] && (
+                  <span className="text-gray-500 bg-gray-50 border border-gray-200 text-xs px-3 py-1 rounded-full">{data.techStack.backend[0]}</span>
+                )}
               </div>
-              <h2 className="text-gray-900 text-xl font-black mb-1.5" style={MANROPE}>{data.title}</h2>
-              <p className="text-[#FF6B00] text-xs mb-3 font-medium italic">{data.tagline}</p>
-              <p className="text-gray-500 text-sm leading-relaxed">{data.description}</p>
-            </Card>
+              <h2 className="text-gray-900 text-xl font-black mb-1" style={MANROPE}>{data.title}</h2>
+              <p className="text-[#FF6B00] text-xs font-medium italic">{data.tagline}</p>
+            </div>
 
-            <Card id="techstack" icon={Code2} title="Recommended Tech Stack" copyText={Object.entries(data.techStack).map(([k, v]) => `${k}: ${v.join(", ")}`).join("\n")}>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {(Object.entries(data.techStack) as [keyof TechStack, string[]][]).map(([key, items]) => {
-                  const icons: Record<string, React.ElementType> = { frontend: Globe, backend: Server, database: Database, devops: Network };
-                  const Icon = icons[key] || Code2;
-                  return (
-                    <div key={key} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                      <div className="flex items-center gap-1.5 text-gray-400 text-[10px] uppercase tracking-wider mb-3"><Icon className="w-3 h-3" />{key}</div>
-                      <div className="flex flex-wrap gap-2">
-                        {items.map(item => (<span key={item} className="bg-white border border-gray-200 text-gray-600 text-xs px-2.5 py-1 rounded-lg">{item}</span>))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </Card>
+            {/* Dynamic sections */}
+            {(data.sections || []).map(section => (
+              <SectionCard key={section.id} section={section} />
+            ))}
 
-            <Card id="features" icon={CheckSquare} title="Core Features & Modules" copyText={data.features.map(f => `[${f.priority.toUpperCase()}] ${f.name}: ${f.description}`).join("\n")}>
-              <div className="space-y-2">
-                {data.features.map((f, i) => (
-                  <div key={i} className="flex items-start gap-3 bg-gray-50 hover:bg-white border border-gray-100 hover:border-[#E8320A]/15 rounded-xl p-4 transition-all">
-                    <div className="w-5 h-5 rounded-full bg-[#E8320A]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#E8320A]" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2 mb-0.5">
-                        <span className="text-gray-900 text-sm font-semibold">{f.name}</span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold ${priorityColor(f.priority)}`}>{f.priority}</span>
-                      </div>
-                      <p className="text-gray-500 text-xs leading-relaxed">{f.description}</p>
-                    </div>
+            {/* Generated files (if any) */}
+            {data.generatedFiles && data.generatedFiles.length > 0 && (
+              <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden mb-4 shadow-sm">
+                <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+                  <div className="w-8 h-8 rounded-lg bg-[#E8320A]/8 flex items-center justify-center">
+                    <Code2 className="w-4 h-4 text-[#E8320A]" />
                   </div>
-                ))}
-              </div>
-            </Card>
-
-            <Card id="database" icon={Database} title="Database Schema">
-              <div className="space-y-4">
-                {data.database.map((table, i) => (
-                  <div key={i} className="bg-gray-50 rounded-xl overflow-hidden border border-gray-100">
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                      <div className="flex items-center gap-2">
-                        <Database className="w-3.5 h-3.5 text-[#E8320A]" />
-                        <span className="text-gray-900 font-semibold text-sm" style={MONO}>{table.name}</span>
+                  <h3 className="text-gray-900 font-bold text-sm" style={MANROPE}>Generated Source Files</h3>
+                </div>
+                <div className="p-5 space-y-4">
+                  {data.generatedFiles.map((file, i) => (
+                    <div key={i} className="bg-gray-50 rounded-xl overflow-hidden border border-gray-100">
+                      <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100">
+                        <span className="text-gray-700 font-semibold text-xs" style={MONO}>{file.path}</span>
+                        <span className="text-gray-400 text-[10px]">{file.language}</span>
                       </div>
-                      <span className="text-gray-400 text-xs">{table.columns.length} columns</span>
-                    </div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b border-gray-100">
-                            <th className="text-left text-gray-400 text-[10px] uppercase tracking-wider px-4 py-2">Column</th>
-                            <th className="text-left text-gray-400 text-[10px] uppercase tracking-wider px-4 py-2">Type</th>
-                            <th className="text-left text-gray-400 text-[10px] uppercase tracking-wider px-4 py-2">Note</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {table.columns.map((col, j) => (
-                            <tr key={j} className="border-b border-gray-50 last:border-0 hover:bg-white transition-colors">
-                              <td className="px-4 py-2 text-gray-700 text-xs" style={MONO}>{col.name}</td>
-                              <td className="px-4 py-2 text-[#E8320A] text-xs font-medium" style={MONO}>{col.type}</td>
-                              <td className="px-4 py-2 text-gray-400 text-xs">{col.note || "—"}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-            <Card id="apis" icon={GitBranch} title="API Endpoints" copyText={data.apis.map(a => `${a.method} ${a.path} — ${a.description}${a.auth ? " [AUTH]" : ""}`).join("\n")}>
-              <div className="space-y-2">
-                {data.apis.map((api, i) => (
-                  <div key={i} className="flex flex-col sm:flex-row sm:items-center gap-2.5 bg-gray-50 hover:bg-white border border-gray-100 hover:border-gray-200 rounded-xl p-3.5 transition-all">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span className={`text-[11px] font-black px-2 py-0.5 rounded-md border flex-shrink-0 ${methodColor(api.method)}`} style={MONO}>{api.method}</span>
-                      <code className="text-gray-600 text-xs truncate" style={MONO}>{api.path}</code>
-                    </div>
-                    <div className="flex items-center gap-2 sm:ml-auto flex-shrink-0">
-                      <p className="text-gray-400 text-xs hidden sm:block">{api.description}</p>
-                      {api.auth && (
-                        <div className="flex items-center gap-1 bg-gray-100 border border-gray-200 rounded-md px-1.5 py-0.5 flex-shrink-0">
-                          <Lock className="w-2.5 h-2.5 text-gray-400" />
-                          <span className="text-gray-400 text-[10px]">Auth</span>
-                        </div>
+                      {file.content && (
+                        <pre className="p-4 text-[11px] text-gray-300 bg-gray-900 overflow-x-auto leading-relaxed" style={MONO}>
+                          {file.content.split("\n").slice(0, 40).join("\n")}
+                        </pre>
                       )}
                     </div>
-                    <p className="text-gray-400 text-xs sm:hidden">{api.description}</p>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </Card>
-
-            <Card id="devsteps" icon={Flag} title="Development Steps" copyText={data.devSteps.map(s => `${s.step}. ${s.title}: ${s.description}`).join("\n\n")}>
-              <div className="space-y-3">
-                {data.devSteps.map((step, i) => (
-                  <div key={i} className="flex gap-4 bg-gray-50 rounded-xl p-4 border border-gray-100">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center border border-[#E8320A]/20 bg-[#E8320A]/5">
-                      <span className="text-[#E8320A] text-xs font-black">{step.step}</span>
-                    </div>
-                    <div>
-                      <h4 className="text-gray-900 font-semibold text-sm mb-1" style={MANROPE}>{step.title}</h4>
-                      <p className="text-gray-500 text-xs leading-relaxed">{step.description}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-            <Card id="timeline" icon={Clock} title="Development Timeline" copyText={data.timeline.map(p => `${p.phase} (${p.duration}): ${p.tasks.join(", ")}`).join("\n")}>
-              <div className="space-y-3">
-                {data.timeline.map((phase, i) => (
-                  <div key={i} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-gray-900 font-semibold text-sm" style={MANROPE}>{phase.phase}</h4>
-                      <span className="text-[#E8320A] text-xs bg-[#E8320A]/8 border border-[#E8320A]/15 px-2.5 py-0.5 rounded-full font-semibold">{phase.duration}</span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {phase.tasks.map(task => (
-                        <span key={task} className="flex items-center gap-1.5 text-gray-500 text-xs bg-white border border-gray-200 rounded-lg px-2.5 py-1">
-                          <div className="w-1 h-1 rounded-full bg-gray-300" />{task}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-            <Card id="structure" icon={Folder} title="Folder Structure">
-              <div className="relative">
-                <div className="absolute top-3 right-3 z-10"><CopyBtn text={data.folderStructure} /></div>
-                <pre className="bg-gray-900 border border-gray-800 rounded-xl p-5 text-xs text-gray-300 overflow-x-auto leading-loose" style={MONO}>
-                  {data.folderStructure}
-                </pre>
-              </div>
-            </Card>
+            )}
 
             {/* Bottom actions */}
             <div className="flex flex-wrap gap-3 pt-2 pb-8">
@@ -892,7 +894,6 @@ function ResultsDashboard({ data, prompt, onBack, onRegenerate }: {
                 <RefreshCw className="w-4 h-4" /> Generate Again
               </button>
             </div>
-
           </div>
         </main>
       </div>
@@ -900,30 +901,26 @@ function ResultsDashboard({ data, prompt, onBack, onRegenerate }: {
   );
 }
 
-// ─── App ──────────────────────────────────────────────────────
+// ─── App ───────────────────────────────────────────────────────
 export default function App() {
-  const [view, setView] = useState<View>("landing");
-  const [prompt, setPrompt] = useState("");
+  const [view, setView]               = useState<View>("landing");
+  const [prompt, setPrompt]           = useState("");
   const [projectData, setProjectData] = useState<ProjectData | null>(null);
-
-  // Holds the in-flight API promise so animation and API run in parallel
-  const apiPromiseRef = useRef<Promise<ProjectData> | null>(null);
+  const apiPromiseRef                 = useRef<Promise<ProjectData> | null>(null);
 
   const handleGenerate = (p: string) => {
-    if (!p.trim()) { toast.error("Please enter a project idea"); return; }
+    if (!p.trim()) { toast.error("Please enter a project description"); return; }
     setPrompt(p);
-    // ── Fire API call IMMEDIATELY — don't wait for animation ──
-    apiPromiseRef.current = generateBlueprint(p.trim());
+    apiPromiseRef.current = generateBlueprint(p.trim()) as Promise<ProjectData>;
     setView("generating");
   };
 
-  // Called by GeneratingView once its animation finishes (~7s).
-  // By then the API call is usually done — we just await the
-  // already-running promise instead of starting a new one.
   const handleComplete = useCallback(async () => {
     try {
-      const data = await (apiPromiseRef.current ?? generateBlueprint(prompt));
+      const data = await (apiPromiseRef.current ?? generateBlueprint(prompt)) as ProjectData;
       apiPromiseRef.current = null;
+      // Safety: ensure sections is always an array
+      if (!Array.isArray(data.sections)) data.sections = [];
       setProjectData(data);
       setView("results");
     } catch (err: any) {
@@ -952,11 +949,11 @@ export default function App() {
         )}
         {view === "results" && projectData && (
           <motion.div key="results" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}
-            className="h-screen overflow-hidden"> {/* ← Locks outer container */}
+            className="h-screen overflow-hidden">
             <ResultsDashboard
               data={projectData} prompt={prompt}
               onBack={() => setView("landing")}
-              onRegenerate={() => setView("generating")}
+              onRegenerate={() => { setView("generating"); apiPromiseRef.current = generateBlueprint(prompt) as Promise<ProjectData>; }}
             />
           </motion.div>
         )}
