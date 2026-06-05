@@ -14,8 +14,17 @@ const ALT_ROW      = "FFF2E8";
 const WHITE        = "FFFFFF";
 const TBL_HEAD     = "1F3864";
 const BORDER       = "D9D9D9";
+const CODE_BG      = "0F172A";
+const CODE_FG      = "94A3B8";
 
 const CONTENT_W = 9360;
+
+// ─── Safe string helper ────────────────────────────────────
+// Ensures we never pass undefined/null to TextRun
+function safeStr(val) {
+  if (val === null || val === undefined) return "";
+  return String(val);
+}
 
 // ─── Helpers ───────────────────────────────────────────────
 
@@ -40,7 +49,7 @@ function sectionHeading(text) {
     heading: HeadingLevel.HEADING_1,
     spacing: { before: 360, after: 120 },
     border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: ACCENT } },
-    children: [new TextRun({ text, bold: true, size: 32, color: ACCENT, font: "Times New Roman" })],
+    children: [new TextRun({ text: safeStr(text), bold: true, size: 32, color: ACCENT, font: "Times New Roman" })],
   });
 }
 
@@ -48,7 +57,7 @@ function subHeading(text) {
   return new Paragraph({
     heading: HeadingLevel.HEADING_2,
     spacing: { before: 200, after: 80 },
-    children: [new TextRun({ text, bold: true, size: 26, color: HEADING_DARK, font: "Times New Roman" })],
+    children: [new TextRun({ text: safeStr(text), bold: true, size: 26, color: HEADING_DARK, font: "Times New Roman" })],
   });
 }
 
@@ -56,7 +65,7 @@ function body(text) {
   if (!text) return null;
   return new Paragraph({
     spacing: { before: 60, after: 60, line: 360 },
-    children: [new TextRun({ text, size: 24, color: DARK, font: "Times New Roman" })],
+    children: [new TextRun({ text: safeStr(text), size: 24, color: DARK, font: "Times New Roman" })],
   });
 }
 
@@ -64,7 +73,7 @@ function bullet(text) {
   return new Paragraph({
     numbering: { reference: "bullets", level: 0 },
     spacing: { before: 40, after: 40 },
-    children: [new TextRun({ text, size: 23, color: DARK, font: "Times New Roman" })],
+    children: [new TextRun({ text: safeStr(text), size: 23, color: DARK, font: "Times New Roman" })],
   });
 }
 
@@ -72,12 +81,16 @@ function centeredTitle(text, size = 36, color = HEADING_DARK) {
   return new Paragraph({
     alignment: AlignmentType.CENTER,
     spacing: { before: 160, after: 160 },
-    children: [new TextRun({ text, bold: true, size, color, font: "Times New Roman", allCaps: true })],
+    children: [new TextRun({ text: safeStr(text), bold: true, size, color, font: "Times New Roman", allCaps: true })],
   });
 }
 
 function makeTable(headers, rows, colPercents) {
-  const colWidths = colPercents
+  // Guard: ensure headers and rows are valid arrays
+  if (!Array.isArray(headers) || headers.length === 0) return null;
+  if (!Array.isArray(rows) || rows.length === 0) return null;
+
+  const colWidths = (Array.isArray(colPercents) && colPercents.length === headers.length)
     ? colPercents.map(p => Math.round((p / 100) * CONTENT_W))
     : headers.map(() => Math.round(CONTENT_W / headers.length));
 
@@ -102,70 +115,81 @@ function makeTable(headers, rows, colPercents) {
             verticalAlign: VerticalAlign.CENTER,
             margins: { top: 80, bottom: 80, left: 120, right: 120 },
             children: [new Paragraph({
-              children: [new TextRun({ text: h, bold: true, size: 20, color: WHITE, font: "Times New Roman" })],
+              children: [new TextRun({ text: safeStr(h), bold: true, size: 20, color: WHITE, font: "Times New Roman" })],
             })],
           })
         ),
       }),
-      ...rows.map((row, ri) =>
-        new TableRow({
-          children: row.map((cell, ci) =>
+      ...rows.map((row, ri) => {
+        // Ensure row is an array and has enough cells
+        const safeRow = Array.isArray(row) ? row : [];
+        return new TableRow({
+          children: headers.map((_, ci) =>
             new TableCell({
               width: { size: colWidths[ci], type: WidthType.DXA },
               shading: { type: ShadingType.CLEAR, fill: ri % 2 === 0 ? WHITE : ALT_ROW },
               verticalAlign: VerticalAlign.CENTER,
               margins: { top: 60, bottom: 60, left: 120, right: 120 },
               children: [new Paragraph({
-                children: [new TextRun({ text: String(cell ?? "—"), size: 20, font: "Times New Roman", color: DARK })],
+                children: [new TextRun({ text: safeStr(safeRow[ci] ?? "—"), size: 20, font: "Times New Roman", color: DARK })],
               })],
             })
           ),
-        })
-      ),
+        });
+      }),
     ],
   });
 }
 
+// FIX: diagramBox now renders each line as its OWN Paragraph instead of
+// using TextRun({ break: 1 }) inside a single Paragraph.
+// Per docx skill: "Never use \n — use separate Paragraph elements"
+// Using one Paragraph with break: 1 runs caused Word to refuse opening the file.
 function diagramBox(lines, caption) {
+  if (!Array.isArray(lines) || lines.length === 0) return [];
+
   const result = [];
-  result.push(
-    new Paragraph({
-      spacing: { before: 80, after: 80 },
-      shading: { type: ShadingType.CLEAR, fill: "0F172A" },
-      border: {
-        top:    { style: BorderStyle.SINGLE, size: 6, color: ACCENT },
-        left:   { style: BorderStyle.SINGLE, size: 6, color: ACCENT },
-        bottom: { style: BorderStyle.SINGLE, size: 6, color: ACCENT },
-        right:  { style: BorderStyle.SINGLE, size: 6, color: ACCENT },
-      },
-      children: lines.flatMap((line, i) => [
-        ...(i > 0 ? [new TextRun({ break: 1 })] : []),
-        new TextRun({ text: line, size: 18, font: "Courier New", color: "94A3B8" }),
-      ]),
-    }),
-  );
+
+  // Each diagram line = its own Paragraph with dark background + monospace font
+  lines.forEach((line, i) => {
+    result.push(
+      new Paragraph({
+        spacing: { before: i === 0 ? 80 : 0, after: 0 },
+        shading: { type: ShadingType.CLEAR, fill: CODE_BG },
+        // Only draw the outer border on first and last lines
+        border: {
+          top:   i === 0             ? { style: BorderStyle.SINGLE, size: 6, color: ACCENT } : undefined,
+          left:                        { style: BorderStyle.SINGLE, size: 6, color: ACCENT },
+          right:                       { style: BorderStyle.SINGLE, size: 6, color: ACCENT },
+          bottom: i === lines.length - 1 ? { style: BorderStyle.SINGLE, size: 6, color: ACCENT } : undefined,
+        },
+        children: [
+          new TextRun({ text: safeStr(line) || " ", size: 18, font: "Courier New", color: CODE_FG }),
+        ],
+      })
+    );
+  });
+
   if (caption) {
     result.push(new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { before: 40, after: 100 },
-      children: [new TextRun({ text: `Figure: ${caption}`, size: 18, italics: true, color: MID_GRAY, font: "Times New Roman" })],
+      children: [new TextRun({ text: `Figure: ${safeStr(caption)}`, size: 18, italics: true, color: MID_GRAY, font: "Times New Roman" })],
     }));
   }
+
   return result;
 }
 
-// ─── Render a single section or subsection's block content ─
-// Returns array of docx elements (paragraphs, tables, etc.)
+// ─── Render a single section/subsection's block content ────
 function renderContentBlock(block) {
   const elements = [];
 
-  // Main text content
   if (block.content) {
     const p = body(block.content);
     if (p) elements.push(p, spacer(30, 30));
   }
 
-  // Bullet list
   if (Array.isArray(block.bullets) && block.bullets.length > 0) {
     for (const b of block.bullets) {
       elements.push(bullet(b));
@@ -173,15 +197,11 @@ function renderContentBlock(block) {
     elements.push(spacer(40, 40));
   }
 
-  // Table
   if (block.table && Array.isArray(block.table.headers) && Array.isArray(block.table.rows)) {
-    elements.push(
-      makeTable(block.table.headers, block.table.rows, block.table.colPercents || null),
-      spacer(120, 60),
-    );
+    const tbl = makeTable(block.table.headers, block.table.rows, block.table.colPercents || null);
+    if (tbl) elements.push(tbl, spacer(120, 60));
   }
 
-  // Code / diagram block
   if (block.codeBlock && Array.isArray(block.codeBlock.lines) && block.codeBlock.lines.length > 0) {
     elements.push(...diagramBox(block.codeBlock.lines, block.codeBlock.caption || null));
     elements.push(spacer(60, 40));
@@ -195,29 +215,31 @@ function renderSections(sections) {
   const elements = [];
 
   for (const section of sections) {
+    // Guard against null/undefined sections
+    if (!section || typeof section !== "object") continue;
+
     const sectionLabel = section.number
       ? `${section.number}. ${section.title}`
-      : section.title;
+      : safeStr(section.title);
 
     elements.push(sectionHeading(sectionLabel));
 
-    // Top-level section content (when no subsections)
     if (!section.subsections || section.subsections.length === 0) {
       elements.push(...renderContentBlock(section));
     }
 
-    // Subsections
     if (Array.isArray(section.subsections) && section.subsections.length > 0) {
-      // If section has its own intro content, render it first
       if (section.content) {
         const p = body(section.content);
         if (p) elements.push(p, spacer(40, 40));
       }
 
       for (const sub of section.subsections) {
+        if (!sub || typeof sub !== "object") continue;
+
         const subLabel = sub.number
           ? `${sub.number}  ${sub.title}`
-          : sub.title;
+          : safeStr(sub.title);
 
         elements.push(subHeading(subLabel));
         elements.push(...renderContentBlock(sub));
@@ -276,7 +298,7 @@ function buildReferences(data) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MAIN DOCX BUILDER — fully dynamic, driven by blueprint.sections
+// MAIN DOCX BUILDER
 // ═══════════════════════════════════════════════════════════════
 async function buildProjectDocx(data) {
   const today = new Date().toLocaleDateString("en-US", {
@@ -302,23 +324,23 @@ async function buildProjectDocx(data) {
       alignment: AlignmentType.CENTER,
       spacing: { before: 0, after: 320 },
       border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: ACCENT } },
-      children: [new TextRun({ text: institution, size: 21, color: MID_GRAY, font: "Times New Roman", italics: true })],
+      children: [new TextRun({ text: safeStr(institution), size: 21, color: MID_GRAY, font: "Times New Roman", italics: true })],
     }),
     spacer(240, 60),
     new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { before: 0, after: 60 },
-      children: [new TextRun({ text: data.title, bold: true, size: 56, color: ACCENT, font: "Times New Roman" })],
+      children: [new TextRun({ text: safeStr(data.title), bold: true, size: 56, color: ACCENT, font: "Times New Roman" })],
     }),
     new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { before: 0, after: 400 },
-      children: [new TextRun({ text: data.tagline, size: 26, color: GRAY, font: "Times New Roman", italics: true })],
+      children: [new TextRun({ text: safeStr(data.tagline), size: 26, color: GRAY, font: "Times New Roman", italics: true })],
     }),
     new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { before: 0, after: 40 },
-      children: [new TextRun({ text: `Category:  ${data.category}`, size: 23, color: DARK, font: "Times New Roman" })],
+      children: [new TextRun({ text: `Category:  ${safeStr(data.category)}`, size: 23, color: DARK, font: "Times New Roman" })],
     }),
     new Paragraph({
       alignment: AlignmentType.CENTER,
@@ -327,7 +349,6 @@ async function buildProjectDocx(data) {
     }),
   );
 
-  // Stack line — only if techStack is present
   if (data.techStack?.frontend?.[0]) {
     children.push(
       new Paragraph({
@@ -346,27 +367,28 @@ async function buildProjectDocx(data) {
   // ── TABLE OF CONTENTS ──────────────────────────────────────
   children.push(centeredTitle("TABLE OF CONTENTS"), hr(), spacer(100, 60));
 
-  for (const section of data.sections) {
+  for (const section of (data.sections || [])) {
+    if (!section) continue;
     const label = section.number ? `${section.number}.` : "";
     children.push(new Paragraph({
       spacing: { before: 70, after: 70 },
       children: [
         new TextRun({ text: `${label}  `, bold: true, size: 23, color: ACCENT, font: "Times New Roman" }),
-        new TextRun({ text: section.title, size: 23, color: DARK, font: "Times New Roman" }),
+        new TextRun({ text: safeStr(section.title), size: 23, color: DARK, font: "Times New Roman" }),
         new TextRun({ text: "  .......  —", size: 22, color: MID_GRAY, font: "Times New Roman" }),
       ],
     }));
 
-    // Sub-entries in TOC
     if (Array.isArray(section.subsections)) {
       for (const sub of section.subsections) {
+        if (!sub) continue;
         const subLabel = sub.number || "";
         children.push(new Paragraph({
           spacing: { before: 40, after: 40 },
           indent: { left: 480 },
           children: [
             new TextRun({ text: `${subLabel}  `, size: 21, color: ACCENT, font: "Times New Roman" }),
-            new TextRun({ text: sub.title, size: 21, color: GRAY, font: "Times New Roman" }),
+            new TextRun({ text: safeStr(sub.title), size: 21, color: GRAY, font: "Times New Roman" }),
             new TextRun({ text: "  .......  —", size: 20, color: MID_GRAY, font: "Times New Roman" }),
           ],
         }));
@@ -385,40 +407,52 @@ async function buildProjectDocx(data) {
     pageBreak(),
   );
 
-  // ── ALL SECTIONS (dynamic) ─────────────────────────────────
-  children.push(...renderSections(data.sections));
+  // ── ALL SECTIONS ───────────────────────────────────────────
+  children.push(...renderSections(data.sections || []));
 
-  // ── GENERATED SOURCE FILES (if present) ───────────────────
+  // ── GENERATED SOURCE FILES ─────────────────────────────────
   if (Array.isArray(data.generatedFiles) && data.generatedFiles.length > 0) {
     children.push(sectionHeading("Generated Source Files"));
     children.push(body("This section contains AI-generated starter implementation files for the project."), spacer(60, 40));
 
     data.generatedFiles.forEach((file, idx) => {
+      if (!file) return;
       children.push(
-        subHeading(`${idx + 1}.  ${file.path}`),
-        body(`Purpose: ${file.purpose || "Implementation File"}`),
-        makeTable(
-          ["Property", "Value"],
-          [["Path", file.path], ["Language", file.language || "Unknown"], ["Type", file.type || "General"]],
-          [30, 70]
-        ),
-        spacer(40, 40),
-        new Paragraph({
-          spacing: { before: 60, after: 60 },
-          shading: { type: ShadingType.CLEAR, fill: "0F172A" },
-          border: {
-            top:    { style: BorderStyle.SINGLE, size: 6, color: ACCENT },
-            left:   { style: BorderStyle.SINGLE, size: 6, color: ACCENT },
-            bottom: { style: BorderStyle.SINGLE, size: 6, color: ACCENT },
-            right:  { style: BorderStyle.SINGLE, size: 6, color: ACCENT },
-          },
-          children: (file.content || "").split("\n").slice(0, 120).flatMap((line, i) => [
-            ...(i > 0 ? [new TextRun({ break: 1 })] : []),
-            new TextRun({ text: line, size: 18, font: "Courier New", color: "94A3B8" }),
-          ]),
-        }),
-        spacer(100, 40),
+        subHeading(`${idx + 1}.  ${safeStr(file.path)}`),
+        body(`Purpose: ${safeStr(file.purpose || "Implementation File")}`),
       );
+
+      const tbl = makeTable(
+        ["Property", "Value"],
+        [
+          ["Path", safeStr(file.path)],
+          ["Language", safeStr(file.language || "Unknown")],
+          ["Type", safeStr(file.type || "General")],
+        ],
+        [30, 70]
+      );
+      if (tbl) children.push(tbl, spacer(40, 40));
+
+      // FIX: code file content — each line is its own Paragraph (never TextRun break: 1)
+      if (file.content) {
+        const codeLines = file.content.split("\n").slice(0, 120);
+        codeLines.forEach((line, i) => {
+          children.push(
+            new Paragraph({
+              spacing: { before: i === 0 ? 60 : 0, after: 0 },
+              shading: { type: ShadingType.CLEAR, fill: CODE_BG },
+              border: {
+                top:    i === 0                  ? { style: BorderStyle.SINGLE, size: 6, color: ACCENT } : undefined,
+                left:                              { style: BorderStyle.SINGLE, size: 6, color: ACCENT },
+                right:                             { style: BorderStyle.SINGLE, size: 6, color: ACCENT },
+                bottom: i === codeLines.length - 1 ? { style: BorderStyle.SINGLE, size: 6, color: ACCENT } : undefined,
+              },
+              children: [new TextRun({ text: safeStr(line) || " ", size: 18, font: "Courier New", color: CODE_FG })],
+            })
+          );
+        });
+        children.push(spacer(100, 40));
+      }
     });
   }
 
@@ -432,7 +466,7 @@ async function buildProjectDocx(data) {
     children.push(new Paragraph({
       spacing: { before: 60, after: 60 },
       indent: { left: 720, hanging: 720 },
-      children: [new TextRun({ text: ref, size: 21, color: DARK, font: "Times New Roman" })],
+      children: [new TextRun({ text: safeStr(ref), size: 21, color: DARK, font: "Times New Roman" })],
     }));
   }
   children.push(spacer(120, 60), hr());
@@ -481,7 +515,7 @@ async function buildProjectDocx(data) {
             alignment: AlignmentType.RIGHT,
             border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: ACCENT } },
             spacing: { before: 0, after: 100 },
-            children: [new TextRun({ text: data.title, size: 18, color: GRAY, font: "Times New Roman" })],
+            children: [new TextRun({ text: safeStr(data.title), size: 18, color: GRAY, font: "Times New Roman" })],
           })],
         }),
       },
